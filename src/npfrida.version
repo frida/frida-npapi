@@ -1,4 +1,4 @@
-LIBCLOUDSPY_1.0 {
+LIBNPFRIDA_1.0 {
   global:
     NP_GetEntryPoints; NP_GetMIMEDescription; NP_GetValue; NP_Initialize; NP_Shutdown;
 

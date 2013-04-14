@@ -1,10 +1,10 @@
-#include "cloud-spy-byte-array.h"
+#include "npfrida-byte-array.h"
 
 #include <string.h>
 
-typedef struct _CloudSpyByteArray CloudSpyByteArray;
+typedef struct _NPFridaByteArray NPFridaByteArray;
 
-struct _CloudSpyByteArray
+struct _NPFridaByteArray
 {
   NPObject np_object;
   guint8 * data;
@@ -12,14 +12,14 @@ struct _CloudSpyByteArray
 };
 
 static NPObject *
-cloud_spy_variant_allocate (NPP npp, NPClass * klass)
+npfrida_variant_allocate (NPP npp, NPClass * klass)
 {
-  CloudSpyByteArray * obj;
+  NPFridaByteArray * obj;
 
   (void) npp;
   (void) klass;
 
-  obj = g_slice_new (CloudSpyByteArray);
+  obj = g_slice_new (NPFridaByteArray);
   obj->data = NULL;
   obj->data_length = 0;
 
@@ -27,23 +27,23 @@ cloud_spy_variant_allocate (NPP npp, NPClass * klass)
 }
 
 static void
-cloud_spy_variant_deallocate (NPObject * npobj)
+npfrida_variant_deallocate (NPObject * npobj)
 {
-  CloudSpyByteArray * self = reinterpret_cast<CloudSpyByteArray *> (npobj);
+  NPFridaByteArray * self = reinterpret_cast<NPFridaByteArray *> (npobj);
 
   g_free (self->data);
 
-  g_slice_free (CloudSpyByteArray, self);
+  g_slice_free (NPFridaByteArray, self);
 }
 
 static void
-cloud_spy_variant_invalidate (NPObject * npobj)
+npfrida_variant_invalidate (NPObject * npobj)
 {
   (void) npobj;
 }
 
 static bool
-cloud_spy_variant_has_method (NPObject * npobj, NPIdentifier name)
+npfrida_variant_has_method (NPObject * npobj, NPIdentifier name)
 {
   const gchar * method_name;
 
@@ -59,9 +59,9 @@ cloud_spy_variant_has_method (NPObject * npobj, NPIdentifier name)
 }
 
 static bool
-cloud_spy_variant_invoke (NPObject * npobj, NPIdentifier name, const NPVariant * args, uint32_t arg_count, NPVariant * result)
+npfrida_variant_invoke (NPObject * npobj, NPIdentifier name, const NPVariant * args, uint32_t arg_count, NPVariant * result)
 {
-  CloudSpyByteArray * self = reinterpret_cast<CloudSpyByteArray *> (npobj);
+  NPFridaByteArray * self = reinterpret_cast<NPFridaByteArray *> (npobj);
 
   (void) args;
 
@@ -73,7 +73,7 @@ cloud_spy_variant_invoke (NPObject * npobj, NPIdentifier name, const NPVariant *
     {
       if (args[0].type == NPVariantType_String)
       {
-        gchar * format = cloud_spy_npstring_to_cstring (&args[0].value.stringValue);
+        gchar * format = npfrida_npstring_to_cstring (&args[0].value.stringValue);
 
         if (strcmp (format, "base64") == 0)
         {
@@ -86,7 +86,7 @@ cloud_spy_variant_invoke (NPObject * npobj, NPIdentifier name, const NPVariant *
         else
         {
           g_free (format);
-          cloud_spy_nsfuncs->setexception (npobj, "invalid format specified");
+          npfrida_nsfuncs->setexception (npobj, "invalid format specified");
           return true;
         }
 
@@ -94,7 +94,7 @@ cloud_spy_variant_invoke (NPObject * npobj, NPIdentifier name, const NPVariant *
       }
       else
       {
-        cloud_spy_nsfuncs->setexception (npobj, "invalid argument");
+        npfrida_nsfuncs->setexception (npobj, "invalid argument");
         return true;
       }
     }
@@ -102,7 +102,7 @@ cloud_spy_variant_invoke (NPObject * npobj, NPIdentifier name, const NPVariant *
     if (base64)
     {
       gchar * str = g_base64_encode (self->data, self->data_length);
-      cloud_spy_init_npvariant_with_string (result, str);
+      npfrida_init_npvariant_with_string (result, str);
       g_free (str);
     }
     else
@@ -118,7 +118,7 @@ cloud_spy_variant_invoke (NPObject * npobj, NPIdentifier name, const NPVariant *
         g_string_append_printf (s, "%02x", (gint) self->data[i]);
       }
 
-      cloud_spy_init_npvariant_with_string (result, s->str);
+      npfrida_init_npvariant_with_string (result, s->str);
 
       g_string_free (s, TRUE);
     }
@@ -127,28 +127,28 @@ cloud_spy_variant_invoke (NPObject * npobj, NPIdentifier name, const NPVariant *
   }
   else
   {
-    cloud_spy_nsfuncs->setexception (npobj, "no such method");
+    npfrida_nsfuncs->setexception (npobj, "no such method");
     return true;
   }
 }
 
 static bool
-cloud_spy_variant_invoke_default (NPObject * npobj, const NPVariant * args, uint32_t arg_count, NPVariant * result)
+npfrida_variant_invoke_default (NPObject * npobj, const NPVariant * args, uint32_t arg_count, NPVariant * result)
 {
   (void) args;
   (void) arg_count;
   (void) result;
 
-  cloud_spy_nsfuncs->setexception (npobj, "invalid operation");
+  npfrida_nsfuncs->setexception (npobj, "invalid operation");
   return true;
 }
 
 static bool
-cloud_spy_variant_has_property (NPObject * npobj, NPIdentifier name)
+npfrida_variant_has_property (NPObject * npobj, NPIdentifier name)
 {
-  CloudSpyByteArray * self = reinterpret_cast<CloudSpyByteArray *> (npobj);
+  NPFridaByteArray * self = reinterpret_cast<NPFridaByteArray *> (npobj);
 
-  if (cloud_spy_nsfuncs->identifierisstring (name))
+  if (npfrida_nsfuncs->identifierisstring (name))
   {
     const gchar * property_name;
 
@@ -160,7 +160,7 @@ cloud_spy_variant_has_property (NPObject * npobj, NPIdentifier name)
   {
     int32_t index;
 
-    index = cloud_spy_nsfuncs->intfromidentifier (name);
+    index = npfrida_nsfuncs->intfromidentifier (name);
     if (index >= 0 && index < self->data_length)
       return true;
   }
@@ -169,11 +169,11 @@ cloud_spy_variant_has_property (NPObject * npobj, NPIdentifier name)
 }
 
 static bool
-cloud_spy_variant_get_property (NPObject * npobj, NPIdentifier name, NPVariant * result)
+npfrida_variant_get_property (NPObject * npobj, NPIdentifier name, NPVariant * result)
 {
-  CloudSpyByteArray * self = reinterpret_cast<CloudSpyByteArray *> (npobj);
+  NPFridaByteArray * self = reinterpret_cast<NPFridaByteArray *> (npobj);
 
-  if (cloud_spy_nsfuncs->identifierisstring (name))
+  if (npfrida_nsfuncs->identifierisstring (name))
   {
     const gchar * property_name;
 
@@ -188,7 +188,7 @@ cloud_spy_variant_get_property (NPObject * npobj, NPIdentifier name, NPVariant *
   {
     int32_t index;
 
-    index = cloud_spy_nsfuncs->intfromidentifier (name);
+    index = npfrida_nsfuncs->intfromidentifier (name);
     if (index >= 0 && index < self->data_length)
     {
       INT32_TO_NPVARIANT (self->data[index], *result);
@@ -196,21 +196,21 @@ cloud_spy_variant_get_property (NPObject * npobj, NPIdentifier name, NPVariant *
     }
   }
 
-  cloud_spy_nsfuncs->setexception (npobj, "invalid property");
+  npfrida_nsfuncs->setexception (npobj, "invalid property");
   return true;
 }
 
-static NPClass cloud_spy_variant_class =
+static NPClass npfrida_variant_class =
 {
   NP_CLASS_STRUCT_VERSION,
-  cloud_spy_variant_allocate,
-  cloud_spy_variant_deallocate,
-  cloud_spy_variant_invalidate,
-  cloud_spy_variant_has_method,
-  cloud_spy_variant_invoke,
-  cloud_spy_variant_invoke_default,
-  cloud_spy_variant_has_property,
-  cloud_spy_variant_get_property,
+  npfrida_variant_allocate,
+  npfrida_variant_deallocate,
+  npfrida_variant_invalidate,
+  npfrida_variant_has_method,
+  npfrida_variant_invoke,
+  npfrida_variant_invoke_default,
+  npfrida_variant_has_property,
+  npfrida_variant_get_property,
   NULL,
   NULL,
   NULL,
@@ -218,11 +218,11 @@ static NPClass cloud_spy_variant_class =
 };
 
 NPObject *
-cloud_spy_byte_array_new (NPP npp, const guint8 * data, gint data_length)
+npfrida_byte_array_new (NPP npp, const guint8 * data, gint data_length)
 {
-  CloudSpyByteArray * obj;
+  NPFridaByteArray * obj;
 
-  obj = reinterpret_cast<CloudSpyByteArray *> (cloud_spy_nsfuncs->createobject (npp, &cloud_spy_variant_class));
+  obj = reinterpret_cast<NPFridaByteArray *> (npfrida_nsfuncs->createobject (npp, &npfrida_variant_class));
   obj->data = (data_length != 0) ? static_cast<guint8 *> (g_memdup (data, data_length)) : NULL;
   obj->data_length = data_length;
 
@@ -230,7 +230,7 @@ cloud_spy_byte_array_new (NPP npp, const guint8 * data, gint data_length)
 }
 
 NPClass *
-cloud_spy_variant_get_class (void)
+npfrida_variant_get_class (void)
 {
-  return &cloud_spy_variant_class;
+  return &npfrida_variant_class;
 }

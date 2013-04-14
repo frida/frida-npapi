@@ -1,5 +1,5 @@
-namespace CloudSpy {
-	[DBus (name = "com.appspot.cloud-spy.RootApi")]
+namespace NPFrida {
+	[DBus (name = "com.appspot.npfrida.RootApi")]
 	public interface RootApi : Object {
 		public abstract async string enumerate_devices () throws IOError;
 		public abstract async string enumerate_processes (uint device_id) throws IOError;
@@ -13,15 +13,15 @@ namespace CloudSpy {
 	}
 
 	public class Dispatcher : GLib.Object {
-		protected unowned CloudSpy.Object target_object;
+		protected unowned NPFrida.Object target_object;
 		protected DBusMethodInfo ** methods;
 		protected DBusInterfaceMethodCallFunc dispatch_func;
 
-		public Dispatcher.for_object (CloudSpy.Object obj) {
+		public Dispatcher.for_object (NPFrida.Object obj) {
 			init_with_object (obj);
 		}
 
-		private extern void init_with_object (CloudSpy.Object obj);
+		private extern void init_with_object (NPFrida.Object obj);
 
 		public bool has_method (string name) {
 			return find_method_by_name (name) != null;

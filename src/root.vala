@@ -1,4 +1,4 @@
-namespace CloudSpy {
+namespace NPFrida {
 	public class Root : Object, RootApi {
 		private Gee.ArrayList<Device> devices = new Gee.ArrayList<Device> ();
 		private uint last_device_id = 1;
@@ -323,7 +323,7 @@ namespace CloudSpy {
 			private const string SERVER_ADDRESS_TEMPLATE = "tcp:host=127.0.0.1,port=%u";
 
 			public Server () throws IOError {
-				var blob = CloudSpy.Data.get_zed_server_blob ();
+				var blob = NPFrida.Data.get_zed_server_blob ();
 				executable = new TemporaryFile.from_stream ("server", new MemoryInputStream.from_data (blob.data, null));
 				try {
 					executable.file.set_attribute_uint32 (FILE_ATTRIBUTE_UNIX_MODE, 0755, FileQueryInfoFlags.NONE);
@@ -378,7 +378,7 @@ namespace CloudSpy {
 			}
 
 			public TemporaryFile.from_stream (string name, InputStream istream) throws IOError {
-				this.file = File.new_for_path (Path.build_filename (Environment.get_tmp_dir (), "cloud-spy-%p-%u-%s".printf (this, Random.next_int (), name)));
+				this.file = File.new_for_path (Path.build_filename (Environment.get_tmp_dir (), "npfrida-%p-%u-%s".printf (this, Random.next_int (), name)));
 
 				try {
 					var ostream = file.create (FileCreateFlags.NONE, null);

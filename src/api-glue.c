@@ -1,15 +1,15 @@
 #include <glib.h>
 #include <glib-object.h>
-#include <cloud-spy-object.h>
+#include <npfrida-object.h>
 #include <stdlib.h>
 #include <string.h>
 #include <gio/gio.h>
 
-static const gint cloud_spy_dispatcher_magic = 1337;
+static const gint npfrida_dispatcher_magic = 1337;
 
-typedef struct _CloudSpyDispatcherInvocation CloudSpyDispatcherInvocation;
+typedef struct _NPFridaDispatcherInvocation NPFridaDispatcherInvocation;
 
-struct _CloudSpyDispatcherInvocation
+struct _NPFridaDispatcherInvocation
 {
   const gint * magic;
 
@@ -22,34 +22,34 @@ struct _CloudSpyDispatcherInvocation
   GDBusMessage * call_message;
 };
 
-static void cloud_spy_dispatcher_unref (gpointer object);
+static void npfrida_dispatcher_unref (gpointer object);
 
-static CloudSpyDispatcherInvocation * cloud_spy_dispatcher_invocation_new (GDBusMethodInfo * method, GVariant * parameters, GSimpleAsyncResult * res);
-static void cloud_spy_dispatcher_invocation_ref (CloudSpyDispatcherInvocation * invocation);
-static void cloud_spy_dispatcher_invocation_unref (CloudSpyDispatcherInvocation * invocation);
-static void cloud_spy_dispatcher_invocation_perform (CloudSpyDispatcherInvocation * self);
+static NPFridaDispatcherInvocation * npfrida_dispatcher_invocation_new (GDBusMethodInfo * method, GVariant * parameters, GSimpleAsyncResult * res);
+static void npfrida_dispatcher_invocation_ref (NPFridaDispatcherInvocation * invocation);
+static void npfrida_dispatcher_invocation_unref (NPFridaDispatcherInvocation * invocation);
+static void npfrida_dispatcher_invocation_perform (NPFridaDispatcherInvocation * self);
 
-static GDBusMessage * cloud_spy_dispatcher_invocation_get_message (GDBusMethodInvocation * invocation);
-static GDBusConnection * cloud_spy_dispatcher_invocation_get_connection (GDBusMethodInvocation * invocation);
-static gboolean cloud_spy_dispatcher_connection_send_message (GDBusConnection * connection, GDBusMessage * message, GDBusSendMessageFlags flags, volatile guint32 * out_serial, GError ** error);
-static void cloud_spy_dispatcher_invocation_return_gerror (GDBusMethodInvocation * invocation, const GError * error);
+static GDBusMessage * npfrida_dispatcher_invocation_get_message (GDBusMethodInvocation * invocation);
+static GDBusConnection * npfrida_dispatcher_invocation_get_connection (GDBusMethodInvocation * invocation);
+static gboolean npfrida_dispatcher_connection_send_message (GDBusConnection * connection, GDBusMessage * message, GDBusSendMessageFlags flags, volatile guint32 * out_serial, GError ** error);
+static void npfrida_dispatcher_invocation_return_gerror (GDBusMethodInvocation * invocation, const GError * error);
 
 #define g_object_unref(obj) \
-    cloud_spy_dispatcher_unref (obj)
+    npfrida_dispatcher_unref (obj)
 #define g_dbus_method_invocation_get_message(invocation) \
-    cloud_spy_dispatcher_invocation_get_message (invocation)
+    npfrida_dispatcher_invocation_get_message (invocation)
 #define g_dbus_method_invocation_get_connection(invocation) \
-    cloud_spy_dispatcher_invocation_get_connection (invocation)
+    npfrida_dispatcher_invocation_get_connection (invocation)
 #define g_dbus_connection_send_message(connection, message, flags, out_serial, error) \
-    cloud_spy_dispatcher_connection_send_message (connection, message, flags, out_serial, error)
+    npfrida_dispatcher_connection_send_message (connection, message, flags, out_serial, error)
 #define g_dbus_method_invocation_return_gerror(invocation, error) \
-    cloud_spy_dispatcher_invocation_return_gerror (invocation, error)
+    npfrida_dispatcher_invocation_return_gerror (invocation, error)
 
 #ifdef _MSC_VER
 # pragma warning (push)
 # pragma warning (disable: 4054 4055 4090 4100 4152 4189 4267 4702)
 #endif
-#include "cloud-spy-api.c"
+#include "npfrida-api.c"
 #ifdef _MSC_VER
 # pragma warning (pop)
 #endif
@@ -61,7 +61,7 @@ static void cloud_spy_dispatcher_invocation_return_gerror (GDBusMethodInvocation
 #undef g_dbus_method_invocation_return_gerror
 
 void
-cloud_spy_dispatcher_init_with_object (CloudSpyDispatcher * self, CloudSpyObject * obj)
+npfrida_dispatcher_init_with_object (NPFridaDispatcher * self, NPFridaObject * obj)
 {
   GType type;
 
@@ -69,29 +69,29 @@ cloud_spy_dispatcher_init_with_object (CloudSpyDispatcher * self, CloudSpyObject
 
   type = G_TYPE_FROM_INSTANCE (obj);
 
-  if (g_type_is_a (type, CLOUD_SPY_TYPE_ROOT_API))
+  if (g_type_is_a (type, NPFRIDA_TYPE_ROOT_API))
   {
-    self->methods = (GDBusMethodInfo **) _cloud_spy_root_api_dbus_method_info;
-    self->dispatch_func = cloud_spy_root_api_dbus_interface_method_call;
+    self->methods = (GDBusMethodInfo **) _npfrida_root_api_dbus_method_info;
+    self->dispatch_func = npfrida_root_api_dbus_interface_method_call;
   }
   else
     g_assert_not_reached ();
 }
 
 static void
-cloud_spy_dispatcher_do_invoke (CloudSpyDispatcher * self, GDBusMethodInfo * method, GVariant * parameters,
+npfrida_dispatcher_do_invoke (NPFridaDispatcher * self, GDBusMethodInfo * method, GVariant * parameters,
     GAsyncReadyCallback callback, gpointer user_data)
 {
-  CloudSpyDispatcherInvocation * invocation;
+  NPFridaDispatcherInvocation * invocation;
 
-  invocation = cloud_spy_dispatcher_invocation_new (method, parameters,
-      g_simple_async_result_new (G_OBJECT (self), callback, user_data, GSIZE_TO_POINTER (cloud_spy_dispatcher_do_invoke)));
-  cloud_spy_dispatcher_invocation_perform (invocation);
-  cloud_spy_dispatcher_invocation_unref (invocation);
+  invocation = npfrida_dispatcher_invocation_new (method, parameters,
+      g_simple_async_result_new (G_OBJECT (self), callback, user_data, GSIZE_TO_POINTER (npfrida_dispatcher_do_invoke)));
+  npfrida_dispatcher_invocation_perform (invocation);
+  npfrida_dispatcher_invocation_unref (invocation);
 }
 
 static GVariant *
-cloud_spy_dispatcher_do_invoke_finish (CloudSpyDispatcher * self, GAsyncResult * res, GError ** error)
+npfrida_dispatcher_do_invoke_finish (NPFridaDispatcher * self, GAsyncResult * res, GError ** error)
 {
   GSimpleAsyncResult * ar = G_SIMPLE_ASYNC_RESULT (res);
 
@@ -104,22 +104,22 @@ cloud_spy_dispatcher_do_invoke_finish (CloudSpyDispatcher * self, GAsyncResult *
 }
 
 static void
-cloud_spy_dispatcher_unref (gpointer object)
+npfrida_dispatcher_unref (gpointer object)
 {
-  CloudSpyDispatcherInvocation * invocation = object;
-  if (invocation->magic == &cloud_spy_dispatcher_magic)
-    cloud_spy_dispatcher_invocation_unref (invocation);
+  NPFridaDispatcherInvocation * invocation = object;
+  if (invocation->magic == &npfrida_dispatcher_magic)
+    npfrida_dispatcher_invocation_unref (invocation);
   else
     g_object_unref (object);
 }
 
-static CloudSpyDispatcherInvocation *
-cloud_spy_dispatcher_invocation_new (GDBusMethodInfo * method, GVariant * parameters, GSimpleAsyncResult * res)
+static NPFridaDispatcherInvocation *
+npfrida_dispatcher_invocation_new (GDBusMethodInfo * method, GVariant * parameters, GSimpleAsyncResult * res)
 {
-  CloudSpyDispatcherInvocation * invocation;
+  NPFridaDispatcherInvocation * invocation;
 
-  invocation = g_slice_new (CloudSpyDispatcherInvocation);
-  invocation->magic = &cloud_spy_dispatcher_magic;
+  invocation = g_slice_new (NPFridaDispatcherInvocation);
+  invocation->magic = &npfrida_dispatcher_magic;
 
   invocation->ref_count = 1;
 
@@ -134,13 +134,13 @@ cloud_spy_dispatcher_invocation_new (GDBusMethodInfo * method, GVariant * parame
 }
 
 static void
-cloud_spy_dispatcher_invocation_ref (CloudSpyDispatcherInvocation * invocation)
+npfrida_dispatcher_invocation_ref (NPFridaDispatcherInvocation * invocation)
 {
   g_atomic_int_inc (&invocation->ref_count);
 }
 
 static void
-cloud_spy_dispatcher_invocation_unref (CloudSpyDispatcherInvocation * invocation)
+npfrida_dispatcher_invocation_unref (NPFridaDispatcherInvocation * invocation)
 {
   if (g_atomic_int_dec_and_test (&invocation->ref_count))
   {
@@ -150,18 +150,18 @@ cloud_spy_dispatcher_invocation_unref (CloudSpyDispatcherInvocation * invocation
 
     g_object_unref (invocation->call_message);
 
-    g_slice_free (CloudSpyDispatcherInvocation, invocation);
+    g_slice_free (NPFridaDispatcherInvocation, invocation);
   }
 }
 
 static void
-cloud_spy_dispatcher_invocation_perform (CloudSpyDispatcherInvocation * self)
+npfrida_dispatcher_invocation_perform (NPFridaDispatcherInvocation * self)
 {
-  CloudSpyDispatcher * dispatcher;
+  NPFridaDispatcher * dispatcher;
 
-  dispatcher = CLOUD_SPY_DISPATCHER (g_async_result_get_source_object (G_ASYNC_RESULT (self->res)));
+  dispatcher = NPFRIDA_DISPATCHER (g_async_result_get_source_object (G_ASYNC_RESULT (self->res)));
 
-  cloud_spy_dispatcher_invocation_ref (self);
+  npfrida_dispatcher_invocation_ref (self);
   dispatcher->dispatch_func (NULL, NULL, NULL, NULL, self->method->name, self->parameters,
       (GDBusMethodInvocation *) self, &dispatcher->target_object);
 
@@ -169,21 +169,21 @@ cloud_spy_dispatcher_invocation_perform (CloudSpyDispatcherInvocation * self)
 }
 
 static GDBusMessage *
-cloud_spy_dispatcher_invocation_get_message (GDBusMethodInvocation * invocation)
+npfrida_dispatcher_invocation_get_message (GDBusMethodInvocation * invocation)
 {
-  return ((CloudSpyDispatcherInvocation *) invocation)->call_message;
+  return ((NPFridaDispatcherInvocation *) invocation)->call_message;
 }
 
 static GDBusConnection *
-cloud_spy_dispatcher_invocation_get_connection (GDBusMethodInvocation * invocation)
+npfrida_dispatcher_invocation_get_connection (GDBusMethodInvocation * invocation)
 {
   return (GDBusConnection *) invocation;
 }
 
 static gboolean
-cloud_spy_dispatcher_connection_send_message (GDBusConnection * connection, GDBusMessage * message, GDBusSendMessageFlags flags, volatile guint32 * out_serial, GError ** error)
+npfrida_dispatcher_connection_send_message (GDBusConnection * connection, GDBusMessage * message, GDBusSendMessageFlags flags, volatile guint32 * out_serial, GError ** error)
 {
-  CloudSpyDispatcherInvocation * self = (CloudSpyDispatcherInvocation *) connection;
+  NPFridaDispatcherInvocation * self = (NPFridaDispatcherInvocation *) connection;
   GVariant * result;
 
   (void) flags;
@@ -198,12 +198,12 @@ cloud_spy_dispatcher_connection_send_message (GDBusConnection * connection, GDBu
 }
 
 static void
-cloud_spy_dispatcher_invocation_return_gerror (GDBusMethodInvocation * invocation, const GError * error)
+npfrida_dispatcher_invocation_return_gerror (GDBusMethodInvocation * invocation, const GError * error)
 {
-  CloudSpyDispatcherInvocation * self = (CloudSpyDispatcherInvocation *) invocation;
+  NPFridaDispatcherInvocation * self = (NPFridaDispatcherInvocation *) invocation;
 
   g_simple_async_result_take_error (self->res, (GError *) error);
   g_simple_async_result_complete (self->res);
 
-  cloud_spy_dispatcher_invocation_unref (self);
+  npfrida_dispatcher_invocation_unref (self);
 }

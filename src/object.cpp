@@ -1,43 +1,43 @@
-#include "cloud-spy-object.h"
+#include "npfrida-object.h"
 
-#include "cloud-spy.h"
-#include "cloud-spy-byte-array.h"
-#include "cloud-spy-object-priv.h"
-#include "cloud-spy-plugin.h"
-#include "cloud-spy-promise.h"
+#include "npfrida.h"
+#include "npfrida-byte-array.h"
+#include "npfrida-object-priv.h"
+#include "npfrida-plugin.h"
+#include "npfrida-promise.h"
 
-typedef struct _CloudSpyObjectPrivate CloudSpyObjectPrivate;
+typedef struct _NPFridaObjectPrivate NPFridaObjectPrivate;
 
-typedef struct _CloudSpyDestroyContext CloudSpyDestroyContext;
-typedef struct _CloudSpyInvokeContext CloudSpyInvokeContext;
-typedef struct _CloudSpyGetPropertyContext CloudSpyGetPropertyContext;
-typedef struct _CloudSpyClosure CloudSpyClosure;
-typedef struct _CloudSpyClosureInvocation CloudSpyClosureInvocation;
+typedef struct _NPFridaDestroyContext NPFridaDestroyContext;
+typedef struct _NPFridaInvokeContext NPFridaInvokeContext;
+typedef struct _NPFridaGetPropertyContext NPFridaGetPropertyContext;
+typedef struct _NPFridaClosure NPFridaClosure;
+typedef struct _NPFridaClosureInvocation NPFridaClosureInvocation;
 
-struct _CloudSpyObjectPrivate
+struct _NPFridaObjectPrivate
 {
   NPP npp;
-  CloudSpyDispatcher * dispatcher;
+  NPFridaDispatcher * dispatcher;
   GCond * cond;
   NPObject * json;
 };
 
-struct _CloudSpyDestroyContext
+struct _NPFridaDestroyContext
 {
-  CloudSpyObject * self;
+  NPFridaObject * self;
   volatile gboolean completed;
 };
 
-struct _CloudSpyInvokeContext
+struct _NPFridaInvokeContext
 {
   gchar * function_name;
   GVariant * arguments;
   NPObject * promise;
 };
 
-struct _CloudSpyGetPropertyContext
+struct _NPFridaGetPropertyContext
 {
-  CloudSpyObject * self;
+  NPFridaObject * self;
 
   const gchar * property_name;
   GValue value;
@@ -45,82 +45,82 @@ struct _CloudSpyGetPropertyContext
   volatile gboolean completed;
 };
 
-struct _CloudSpyClosure
+struct _NPFridaClosure
 {
   GClosure closure;
-  CloudSpyNPObject * object;
+  NPFridaNPObject * object;
   NPObject * callback;
 };
 
-struct _CloudSpyClosureInvocation
+struct _NPFridaClosureInvocation
 {
-  CloudSpyClosure * closure;
+  NPFridaClosure * closure;
   GValueArray * args;
 };
 
-static void cloud_spy_object_constructed (GObject * object);
-static void cloud_spy_object_dispose (GObject * object);
-static void cloud_spy_object_finalize (GObject * object);
+static void npfrida_object_constructed (GObject * object);
+static void npfrida_object_dispose (GObject * object);
+static void npfrida_object_finalize (GObject * object);
 
-static gboolean cloud_spy_object_do_destroy (gpointer data);
-static void cloud_spy_object_destroy_ready (GObject * source_object, GAsyncResult * res, gpointer user_data);
-static gboolean cloud_spy_object_do_invoke (gpointer user_data);
-static void cloud_spy_object_invoke_ready (GObject * source_object, GAsyncResult * res, gpointer user_data);
-static gboolean cloud_spy_object_do_get_property (gpointer data);
-static bool cloud_spy_object_add_event_listener (NPObject * npobj, const NPVariant * args, uint32_t arg_count, NPVariant * result);
+static gboolean npfrida_object_do_destroy (gpointer data);
+static void npfrida_object_destroy_ready (GObject * source_object, GAsyncResult * res, gpointer user_data);
+static gboolean npfrida_object_do_invoke (gpointer user_data);
+static void npfrida_object_invoke_ready (GObject * source_object, GAsyncResult * res, gpointer user_data);
+static gboolean npfrida_object_do_get_property (gpointer data);
+static bool npfrida_object_add_event_listener (NPObject * npobj, const NPVariant * args, uint32_t arg_count, NPVariant * result);
 
-static GVariant * cloud_spy_object_argument_list_to_gvariant (CloudSpyObject * self, const NPVariant * args, guint arg_count, GError ** err);
-static void cloud_spy_object_return_value_to_npvariant (CloudSpyObject * self, GVariant * retval, NPVariant * result);
-static void cloud_spy_object_gvariant_to_npvariant (CloudSpyObject * self, GVariant * retval, NPVariant * result);
+static GVariant * npfrida_object_argument_list_to_gvariant (NPFridaObject * self, const NPVariant * args, guint arg_count, GError ** err);
+static void npfrida_object_return_value_to_npvariant (NPFridaObject * self, GVariant * retval, NPVariant * result);
+static void npfrida_object_gvariant_to_npvariant (NPFridaObject * self, GVariant * retval, NPVariant * result);
 
-static gboolean cloud_spy_object_gvalue_to_npvariant (CloudSpyObject * self, const GValue * gvalue, NPVariant * result);
+static gboolean npfrida_object_gvalue_to_npvariant (NPFridaObject * self, const GValue * gvalue, NPVariant * result);
 
-static GClosure * cloud_spy_closure_new (CloudSpyNPObject * object, NPObject * callback);
-static void cloud_spy_closure_finalize (gpointer data, GClosure * closure);
-static void cloud_spy_closure_marshal (GClosure * closure, GValue * return_gvalue,
+static GClosure * npfrida_closure_new (NPFridaNPObject * object, NPObject * callback);
+static void npfrida_closure_finalize (gpointer data, GClosure * closure);
+static void npfrida_closure_marshal (GClosure * closure, GValue * return_gvalue,
     guint n_param_values, const GValue * param_values, gpointer invocation_hint, gpointer marshal_data);
-static void cloud_spy_closure_invoke (void * data);
+static void npfrida_closure_invoke (void * data);
 
-G_DEFINE_TYPE (CloudSpyObject, cloud_spy_object, G_TYPE_OBJECT);
+G_DEFINE_TYPE (NPFridaObject, npfrida_object, G_TYPE_OBJECT);
 
-G_LOCK_DEFINE_STATIC (cloud_spy_object);
+G_LOCK_DEFINE_STATIC (npfrida_object);
 
 static void
-cloud_spy_object_class_init (CloudSpyObjectClass * klass)
+npfrida_object_class_init (NPFridaObjectClass * klass)
 {
   GObjectClass * object_class = G_OBJECT_CLASS (klass);
 
-  g_type_class_add_private (klass, sizeof (CloudSpyObjectPrivate));
+  g_type_class_add_private (klass, sizeof (NPFridaObjectPrivate));
 
-  object_class->constructed = cloud_spy_object_constructed;
-  object_class->dispose = cloud_spy_object_dispose;
-  object_class->finalize = cloud_spy_object_finalize;
+  object_class->constructed = npfrida_object_constructed;
+  object_class->dispose = npfrida_object_dispose;
+  object_class->finalize = npfrida_object_finalize;
 }
 
 static void
-cloud_spy_object_init (CloudSpyObject * self)
+npfrida_object_init (NPFridaObject * self)
 {
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, CLOUD_SPY_TYPE_OBJECT, CloudSpyObjectPrivate);
+  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, NPFRIDA_TYPE_OBJECT, NPFridaObjectPrivate);
 
   self->priv->cond = g_cond_new ();
 }
 
 static void
-cloud_spy_object_constructed (GObject * object)
+npfrida_object_constructed (GObject * object)
 {
-  CloudSpyObject * self = CLOUD_SPY_OBJECT (object);
+  NPFridaObject * self = NPFRIDA_OBJECT (object);
 
-  self->priv->dispatcher = cloud_spy_dispatcher_new_for_object (self);
+  self->priv->dispatcher = npfrida_dispatcher_new_for_object (self);
 
-  if (G_OBJECT_CLASS (cloud_spy_object_parent_class)->constructed != NULL)
-    G_OBJECT_CLASS (cloud_spy_object_parent_class)->constructed (object);
+  if (G_OBJECT_CLASS (npfrida_object_parent_class)->constructed != NULL)
+    G_OBJECT_CLASS (npfrida_object_parent_class)->constructed (object);
 }
 
 static void
-cloud_spy_object_dispose (GObject * object)
+npfrida_object_dispose (GObject * object)
 {
-  CloudSpyObject * self = CLOUD_SPY_OBJECT (object);
-  CloudSpyObjectPrivate * priv = self->priv;
+  NPFridaObject * self = NPFRIDA_OBJECT (object);
+  NPFridaObjectPrivate * priv = self->priv;
 
   if (priv->dispatcher != NULL)
   {
@@ -130,82 +130,82 @@ cloud_spy_object_dispose (GObject * object)
 
   if (priv->json != NULL)
   {
-    cloud_spy_nsfuncs->releaseobject (priv->json);
+    npfrida_nsfuncs->releaseobject (priv->json);
     priv->json = NULL;
   }
 
-  G_OBJECT_CLASS (cloud_spy_object_parent_class)->dispose (object);
+  G_OBJECT_CLASS (npfrida_object_parent_class)->dispose (object);
 }
 
 static void
-cloud_spy_object_finalize (GObject * object)
+npfrida_object_finalize (GObject * object)
 {
-  CloudSpyObject * self = CLOUD_SPY_OBJECT (object);
+  NPFridaObject * self = NPFRIDA_OBJECT (object);
 
   g_cond_free (self->priv->cond);
 
-  G_OBJECT_CLASS (cloud_spy_object_parent_class)->finalize (object);
+  G_OBJECT_CLASS (npfrida_object_parent_class)->finalize (object);
 }
 
 void
-cloud_spy_np_object_destroy (CloudSpyNPObject * obj)
+npfrida_np_object_destroy (NPFridaNPObject * obj)
 {
-  CloudSpyDestroyContext ctx = { 0, };
+  NPFridaDestroyContext ctx = { 0, };
   GSource * source;
 
   ctx.self = obj->g_object;
 
   source = g_idle_source_new ();
   g_source_set_priority (source, G_PRIORITY_LOW);
-  g_source_set_callback (source, cloud_spy_object_do_destroy, &ctx, NULL);
-  g_source_attach (source, cloud_spy_main_context);
+  g_source_set_callback (source, npfrida_object_do_destroy, &ctx, NULL);
+  g_source_attach (source, npfrida_main_context);
   g_source_unref (source);
 
-  G_LOCK (cloud_spy_object);
+  G_LOCK (npfrida_object);
   while (!ctx.completed)
-    g_cond_wait (ctx.self->priv->cond, g_static_mutex_get_mutex (&G_LOCK_NAME (cloud_spy_object)));
-  G_UNLOCK (cloud_spy_object);
+    g_cond_wait (ctx.self->priv->cond, g_static_mutex_get_mutex (&G_LOCK_NAME (npfrida_object)));
+  G_UNLOCK (npfrida_object);
 }
 
 static gboolean
-cloud_spy_object_do_destroy (gpointer data)
+npfrida_object_do_destroy (gpointer data)
 {
-  CloudSpyDestroyContext * ctx = static_cast<CloudSpyDestroyContext *> (data);
+  NPFridaDestroyContext * ctx = static_cast<NPFridaDestroyContext *> (data);
 
-  CLOUD_SPY_OBJECT_GET_CLASS (ctx->self)->destroy (ctx->self, cloud_spy_object_destroy_ready, ctx);
+  NPFRIDA_OBJECT_GET_CLASS (ctx->self)->destroy (ctx->self, npfrida_object_destroy_ready, ctx);
 
   return FALSE;
 }
 
 static void
-cloud_spy_object_destroy_ready (GObject * source_object, GAsyncResult * res, gpointer user_data)
+npfrida_object_destroy_ready (GObject * source_object, GAsyncResult * res, gpointer user_data)
 {
-  CloudSpyDestroyContext * ctx = static_cast<CloudSpyDestroyContext *> (user_data);
+  NPFridaDestroyContext * ctx = static_cast<NPFridaDestroyContext *> (user_data);
 
   (void) source_object;
 
-  CLOUD_SPY_OBJECT_GET_CLASS (ctx->self)->destroy_finish (ctx->self, res);
+  NPFRIDA_OBJECT_GET_CLASS (ctx->self)->destroy_finish (ctx->self, res);
 
-  G_LOCK (cloud_spy_object);
+  G_LOCK (npfrida_object);
   ctx->completed = TRUE;
   g_cond_signal (ctx->self->priv->cond);
-  G_UNLOCK (cloud_spy_object);
+  G_UNLOCK (npfrida_object);
 }
 
 static NPObject *
-cloud_spy_object_allocate (NPP npp, NPClass * klass)
+npfrida_object_allocate (NPP npp, NPClass * klass)
 {
-  CloudSpyNPObjectClass * np_class = reinterpret_cast<CloudSpyNPObjectClass *> (klass);
-  CloudSpyNPObject * obj;
-  CloudSpyObjectPrivate * priv;
-  NPNetscapeFuncs * browser = cloud_spy_nsfuncs;
+  NPFridaNPObjectClass * np_class = reinterpret_cast<NPFridaNPObjectClass *> (klass);
+  NPFridaNPObject * obj;
+  NPFridaObjectPrivate * priv;
+  NPNetscapeFuncs * browser = npfrida_nsfuncs;
   NPObject * window = NULL;
   NPVariant variant;
   NPError error;
   gboolean success;
 
-  obj = g_slice_new (CloudSpyNPObject);
-  obj->g_object = CLOUD_SPY_OBJECT (g_object_new (np_class->g_type, NULL));
+  obj = g_slice_new (NPFridaNPObject);
+  obj->g_object = NPFRIDA_OBJECT (g_object_new (np_class->g_type, NULL));
   priv = obj->g_object->priv;
 
   priv->npp = npp;
@@ -221,74 +221,74 @@ cloud_spy_object_allocate (NPP npp, NPClass * klass)
 }
 
 static void
-cloud_spy_object_deallocate (NPObject * npobj)
+npfrida_object_deallocate (NPObject * npobj)
 {
-  CloudSpyNPObject * np_object = reinterpret_cast<CloudSpyNPObject *> (npobj);
+  NPFridaNPObject * np_object = reinterpret_cast<NPFridaNPObject *> (npobj);
 
   g_assert (np_object->g_object != NULL);
   g_object_unref (np_object->g_object);
-  g_slice_free (CloudSpyNPObject, np_object);
+  g_slice_free (NPFridaNPObject, np_object);
 }
 
 static void
-cloud_spy_object_invalidate (NPObject * npobj)
+npfrida_object_invalidate (NPObject * npobj)
 {
   (void) npobj;
 }
 
 static bool
-cloud_spy_object_has_method (NPObject * npobj, NPIdentifier name)
+npfrida_object_has_method (NPObject * npobj, NPIdentifier name)
 {
-  CloudSpyObjectPrivate * priv = reinterpret_cast<CloudSpyNPObject *> (npobj)->g_object->priv;
+  NPFridaObjectPrivate * priv = reinterpret_cast<NPFridaNPObject *> (npobj)->g_object->priv;
   const gchar * function_name;
 
   function_name = static_cast<NPString *> (name)->UTF8Characters;
   if (strcmp (function_name, "addEventListener") == 0)
     return true;
 
-  return cloud_spy_dispatcher_has_method (priv->dispatcher, static_cast<NPString *> (name)->UTF8Characters) != FALSE;
+  return npfrida_dispatcher_has_method (priv->dispatcher, static_cast<NPString *> (name)->UTF8Characters) != FALSE;
 }
 
 static bool
-cloud_spy_object_invoke (NPObject * npobj, NPIdentifier name, const NPVariant * args, uint32_t arg_count, NPVariant * result)
+npfrida_object_invoke (NPObject * npobj, NPIdentifier name, const NPVariant * args, uint32_t arg_count, NPVariant * result)
 {
   const gchar * function_name;
-  CloudSpyObject * self;
+  NPFridaObject * self;
   GVariant * arguments = NULL;
   GError * error = NULL;
-  CloudSpyInvokeContext * ctx;
+  NPFridaInvokeContext * ctx;
   GSource * source;
 
   function_name = static_cast<NPString *> (name)->UTF8Characters;
 
   if (strcmp (function_name, "addEventListener") == 0)
   {
-    return cloud_spy_object_add_event_listener (npobj, args, arg_count, result);
+    return npfrida_object_add_event_listener (npobj, args, arg_count, result);
   }
 
-  self = reinterpret_cast<CloudSpyNPObject *> (npobj)->g_object;
+  self = reinterpret_cast<NPFridaNPObject *> (npobj)->g_object;
 
-  arguments = cloud_spy_object_argument_list_to_gvariant (self, args, arg_count, &error);
+  arguments = npfrida_object_argument_list_to_gvariant (self, args, arg_count, &error);
   if (error != NULL)
     goto invoke_failed;
 
-  cloud_spy_dispatcher_validate_invoke (self->priv->dispatcher, function_name, arguments, &error);
+  npfrida_dispatcher_validate_invoke (self->priv->dispatcher, function_name, arguments, &error);
   if (error != NULL)
     goto invoke_failed;
 
-  ctx = g_slice_new0 (CloudSpyInvokeContext);
+  ctx = g_slice_new0 (NPFridaInvokeContext);
   ctx->function_name = g_strdup (function_name);
   ctx->arguments = arguments;
-  cloud_spy_nsfuncs->retainobject (npobj);
-  ctx->promise = cloud_spy_promise_new (self->priv->npp, npobj, cloud_spy_npobject_release);
+  npfrida_nsfuncs->retainobject (npobj);
+  ctx->promise = npfrida_promise_new (self->priv->npp, npobj, npfrida_npobject_release);
 
-  cloud_spy_nsfuncs->retainobject (ctx->promise);
+  npfrida_nsfuncs->retainobject (ctx->promise);
   OBJECT_TO_NPVARIANT (ctx->promise, *result);
 
   source = g_idle_source_new ();
   g_source_set_priority (source, G_PRIORITY_HIGH);
-  g_source_set_callback (source, cloud_spy_object_do_invoke, ctx, NULL);
-  g_source_attach (source, cloud_spy_main_context);
+  g_source_set_callback (source, npfrida_object_do_invoke, ctx, NULL);
+  g_source_attach (source, npfrida_main_context);
   g_source_unref (source);
 
   return true;
@@ -297,49 +297,49 @@ invoke_failed:
   {
     if (arguments != NULL)
       g_variant_unref (arguments);
-    cloud_spy_nsfuncs->setexception (npobj, error->message);
+    npfrida_nsfuncs->setexception (npobj, error->message);
     g_clear_error (&error);
     return true;
   }
 }
 
 static gboolean
-cloud_spy_object_do_invoke (gpointer user_data)
+npfrida_object_do_invoke (gpointer user_data)
 {
-  CloudSpyInvokeContext * ctx = static_cast<CloudSpyInvokeContext *> (user_data);
-  CloudSpyPromise * promise = reinterpret_cast<CloudSpyPromise *> (ctx->promise);
-  CloudSpyObject * self = static_cast<CloudSpyNPObject *> (promise->user_data)->g_object;
+  NPFridaInvokeContext * ctx = static_cast<NPFridaInvokeContext *> (user_data);
+  NPFridaPromise * promise = reinterpret_cast<NPFridaPromise *> (ctx->promise);
+  NPFridaObject * self = static_cast<NPFridaNPObject *> (promise->user_data)->g_object;
 
-  cloud_spy_dispatcher_invoke (self->priv->dispatcher, ctx->function_name, ctx->arguments,
-      cloud_spy_object_invoke_ready, ctx);
+  npfrida_dispatcher_invoke (self->priv->dispatcher, ctx->function_name, ctx->arguments,
+      npfrida_object_invoke_ready, ctx);
 
   return FALSE;
 }
 
 static void
-cloud_spy_object_invoke_ready (GObject * source_object, GAsyncResult * res, gpointer user_data)
+npfrida_object_invoke_ready (GObject * source_object, GAsyncResult * res, gpointer user_data)
 {
-  CloudSpyInvokeContext * ctx = static_cast<CloudSpyInvokeContext *> (user_data);
-  CloudSpyPromise * promise = reinterpret_cast<CloudSpyPromise *> (ctx->promise);
-  CloudSpyObject * self = static_cast<CloudSpyNPObject *> (promise->user_data)->g_object;
+  NPFridaInvokeContext * ctx = static_cast<NPFridaInvokeContext *> (user_data);
+  NPFridaPromise * promise = reinterpret_cast<NPFridaPromise *> (ctx->promise);
+  NPFridaObject * self = static_cast<NPFridaNPObject *> (promise->user_data)->g_object;
   GVariant * retval;
   GError * error = NULL;
 
   (void) source_object;
 
-  retval = cloud_spy_dispatcher_invoke_finish (self->priv->dispatcher, res, &error);
+  retval = npfrida_dispatcher_invoke_finish (self->priv->dispatcher, res, &error);
   if (error == NULL)
   {
     if (retval == NULL)
     {
-      cloud_spy_promise_resolve (promise, NULL, 0);
+      npfrida_promise_resolve (promise, NULL, 0);
     }
     else
     {
       NPVariant val;
-      cloud_spy_object_return_value_to_npvariant (self, retval, &val);
-      cloud_spy_promise_resolve (promise, &val, 1);
-      cloud_spy_nsfuncs->releasevariantvalue (&val);
+      npfrida_object_return_value_to_npvariant (self, retval, &val);
+      npfrida_promise_resolve (promise, &val, 1);
+      npfrida_nsfuncs->releasevariantvalue (&val);
     }
 
     if (retval != NULL)
@@ -350,43 +350,43 @@ cloud_spy_object_invoke_ready (GObject * source_object, GAsyncResult * res, gpoi
     NPVariant message;
 
     STRINGZ_TO_NPVARIANT (error->message, message);
-    cloud_spy_promise_reject (promise, &message, 1);
+    npfrida_promise_reject (promise, &message, 1);
   }
 
   g_free (ctx->function_name);
   if (ctx->arguments != NULL)
     g_variant_unref (ctx->arguments);
-  cloud_spy_nsfuncs->releaseobject (ctx->promise);
-  g_slice_free (CloudSpyInvokeContext, ctx);
+  npfrida_nsfuncs->releaseobject (ctx->promise);
+  g_slice_free (NPFridaInvokeContext, ctx);
 }
 
 static bool
-cloud_spy_object_invoke_default (NPObject * npobj, const NPVariant * args, uint32_t arg_count, NPVariant * result)
+npfrida_object_invoke_default (NPObject * npobj, const NPVariant * args, uint32_t arg_count, NPVariant * result)
 {
   (void) npobj;
   (void) args;
   (void) arg_count;
   (void) result;
 
-  cloud_spy_nsfuncs->setexception (npobj, "invoke_default() is not yet implemented");
+  npfrida_nsfuncs->setexception (npobj, "invoke_default() is not yet implemented");
   return false;
 }
 
 static bool
-cloud_spy_object_has_property (NPObject * npobj, NPIdentifier name)
+npfrida_object_has_property (NPObject * npobj, NPIdentifier name)
 {
-  CloudSpyNPObjectClass * np_class = reinterpret_cast<CloudSpyNPObjectClass *> (npobj->_class);
+  NPFridaNPObjectClass * np_class = reinterpret_cast<NPFridaNPObjectClass *> (npobj->_class);
   NPString * name_str = static_cast<NPString *> (name);
 
   return g_object_class_find_property (G_OBJECT_CLASS (np_class->g_class), name_str->UTF8Characters) != NULL;
 }
 
 static bool
-cloud_spy_object_get_property (NPObject * npobj, NPIdentifier name, NPVariant * result)
+npfrida_object_get_property (NPObject * npobj, NPIdentifier name, NPVariant * result)
 {
-  CloudSpyNPObject * np_object = reinterpret_cast<CloudSpyNPObject *> (npobj);
-  CloudSpyNPObjectClass * np_class = reinterpret_cast<CloudSpyNPObjectClass *> (npobj->_class);
-  CloudSpyGetPropertyContext ctx = { 0, };
+  NPFridaNPObject * np_object = reinterpret_cast<NPFridaNPObject *> (npobj);
+  NPFridaNPObjectClass * np_class = reinterpret_cast<NPFridaNPObjectClass *> (npobj->_class);
+  NPFridaGetPropertyContext ctx = { 0, };
   GParamSpec * spec;
   GSource * source;
 
@@ -400,16 +400,16 @@ cloud_spy_object_get_property (NPObject * npobj, NPIdentifier name, NPVariant * 
 
   source = g_idle_source_new ();
   g_source_set_priority (source, G_PRIORITY_HIGH);
-  g_source_set_callback (source, cloud_spy_object_do_get_property, &ctx, NULL);
-  g_source_attach (source, cloud_spy_main_context);
+  g_source_set_callback (source, npfrida_object_do_get_property, &ctx, NULL);
+  g_source_attach (source, npfrida_main_context);
   g_source_unref (source);
 
-  G_LOCK (cloud_spy_object);
+  G_LOCK (npfrida_object);
   while (!ctx.completed)
-    g_cond_wait (ctx.self->priv->cond, g_static_mutex_get_mutex (&G_LOCK_NAME (cloud_spy_object)));
-  G_UNLOCK (cloud_spy_object);
+    g_cond_wait (ctx.self->priv->cond, g_static_mutex_get_mutex (&G_LOCK_NAME (npfrida_object)));
+  G_UNLOCK (npfrida_object);
 
-  if (!cloud_spy_object_gvalue_to_npvariant (ctx.self, &ctx.value, result))
+  if (!npfrida_object_gvalue_to_npvariant (ctx.self, &ctx.value, result))
     goto cannot_marshal;
   g_value_unset (&ctx.value);
 
@@ -418,35 +418,35 @@ cloud_spy_object_get_property (NPObject * npobj, NPIdentifier name, NPVariant * 
   /* ERRORS */
 no_such_property:
   {
-    cloud_spy_nsfuncs->setexception (npobj, "no such property");
+    npfrida_nsfuncs->setexception (npobj, "no such property");
     return false;
   }
 cannot_marshal:
   {
     g_value_unset (&ctx.value);
-    cloud_spy_nsfuncs->setexception (npobj, "type cannot be marshalled");
+    npfrida_nsfuncs->setexception (npobj, "type cannot be marshalled");
     return false;
   }
 }
 
 static gboolean
-cloud_spy_object_do_get_property (gpointer data)
+npfrida_object_do_get_property (gpointer data)
 {
-  CloudSpyGetPropertyContext * ctx = static_cast<CloudSpyGetPropertyContext *> (data);
-  CloudSpyObjectPrivate * priv = ctx->self->priv;
+  NPFridaGetPropertyContext * ctx = static_cast<NPFridaGetPropertyContext *> (data);
+  NPFridaObjectPrivate * priv = ctx->self->priv;
 
   g_object_get_property (G_OBJECT (ctx->self), ctx->property_name, &ctx->value);
 
-  G_LOCK (cloud_spy_object);
+  G_LOCK (npfrida_object);
   ctx->completed = TRUE;
   g_cond_signal (priv->cond);
-  G_UNLOCK (cloud_spy_object);
+  G_UNLOCK (npfrida_object);
 
   return FALSE;
 }
 
 static bool
-cloud_spy_object_add_event_listener (NPObject * npobj, const NPVariant * args, uint32_t arg_count, NPVariant * result)
+npfrida_object_add_event_listener (NPObject * npobj, const NPVariant * args, uint32_t arg_count, NPVariant * result)
 {
   const NPVariant * signal_name, * signal_handler;
   gchar * signal_name_str;
@@ -454,45 +454,45 @@ cloud_spy_object_add_event_listener (NPObject * npobj, const NPVariant * args, u
 
   if (arg_count != 2)
   {
-    cloud_spy_nsfuncs->setexception (npobj, "addEventListener requires two arguments");
+    npfrida_nsfuncs->setexception (npobj, "addEventListener requires two arguments");
     return true;
   }
 
   signal_name = &args[0];
   if (signal_name->type != NPVariantType_String)
   {
-    cloud_spy_nsfuncs->setexception (npobj, "event name must be a string");
+    npfrida_nsfuncs->setexception (npobj, "event name must be a string");
     return true;
   }
 
   signal_handler = &args[1];
   if (signal_handler->type != NPVariantType_Object)
   {
-    cloud_spy_nsfuncs->setexception (npobj, "event handler must be a function");
+    npfrida_nsfuncs->setexception (npobj, "event handler must be a function");
     return true;
   }
 
   signal_name_str = (gchar *) g_malloc (signal_name->value.stringValue.UTF8Length + 1);
   memcpy (signal_name_str, signal_name->value.stringValue.UTF8Characters, signal_name->value.stringValue.UTF8Length);
   signal_name_str[signal_name->value.stringValue.UTF8Length] = '\0';
-  signal_id = g_signal_lookup (signal_name_str, G_OBJECT_TYPE (reinterpret_cast<CloudSpyNPObject *> (npobj)->g_object));
+  signal_id = g_signal_lookup (signal_name_str, G_OBJECT_TYPE (reinterpret_cast<NPFridaNPObject *> (npobj)->g_object));
   g_free (signal_name_str), signal_name_str = NULL;
 
   if (signal_id == 0)
   {
-    cloud_spy_nsfuncs->setexception (npobj, "invalid event name");
+    npfrida_nsfuncs->setexception (npobj, "invalid event name");
     return true;
   }
 
-  g_signal_connect_closure_by_id (reinterpret_cast<CloudSpyNPObject *> (npobj)->g_object, signal_id, 0,
-      cloud_spy_closure_new (reinterpret_cast<CloudSpyNPObject *> (npobj), signal_handler->value.objectValue), TRUE);
+  g_signal_connect_closure_by_id (reinterpret_cast<NPFridaNPObject *> (npobj)->g_object, signal_id, 0,
+      npfrida_closure_new (reinterpret_cast<NPFridaNPObject *> (npobj), signal_handler->value.objectValue), TRUE);
 
   VOID_TO_NPVARIANT (*result);
   return true;
 }
 
 static GVariant *
-cloud_spy_object_argument_list_to_gvariant (CloudSpyObject * self, const NPVariant * args, guint arg_count, GError ** err)
+npfrida_object_argument_list_to_gvariant (NPFridaObject * self, const NPVariant * args, guint arg_count, GError ** err)
 {
   GVariantBuilder builder;
   guint i;
@@ -518,7 +518,7 @@ cloud_spy_object_argument_list_to_gvariant (CloudSpyObject * self, const NPVaria
       {
         gchar * str;
 
-        str = cloud_spy_npstring_to_cstring (&var->value.stringValue);
+        str = npfrida_npstring_to_cstring (&var->value.stringValue);
         g_variant_builder_add_value (&builder, g_variant_new_string (str));
         g_free (str);
 
@@ -529,15 +529,15 @@ cloud_spy_object_argument_list_to_gvariant (CloudSpyObject * self, const NPVaria
         NPVariant result;
 
         VOID_TO_NPVARIANT (result);
-        if (cloud_spy_nsfuncs->invoke (self->priv->npp, self->priv->json, cloud_spy_nsfuncs->getstringidentifier ("stringify"), var, 1, &result))
+        if (npfrida_nsfuncs->invoke (self->priv->npp, self->priv->json, npfrida_nsfuncs->getstringidentifier ("stringify"), var, 1, &result))
         {
           gchar * str;
 
-          str = cloud_spy_npstring_to_cstring (&result.value.stringValue);
+          str = npfrida_npstring_to_cstring (&result.value.stringValue);
           g_variant_builder_add_value (&builder, g_variant_new_string (str));
           g_free (str);
 
-          cloud_spy_nsfuncs->releasevariantvalue (&result);
+          npfrida_nsfuncs->releasevariantvalue (&result);
 
           break;
         }
@@ -559,7 +559,7 @@ invalid_type:
 }
 
 static void
-cloud_spy_object_return_value_to_npvariant (CloudSpyObject * self, GVariant * retval, NPVariant * result)
+npfrida_object_return_value_to_npvariant (NPFridaObject * self, GVariant * retval, NPVariant * result)
 {
   if (retval == NULL)
   {
@@ -567,11 +567,11 @@ cloud_spy_object_return_value_to_npvariant (CloudSpyObject * self, GVariant * re
     return;
   }
 
-  cloud_spy_object_gvariant_to_npvariant (self, retval, result);
+  npfrida_object_gvariant_to_npvariant (self, retval, result);
 }
 
 static void
-cloud_spy_object_gvariant_to_npvariant (CloudSpyObject * self, GVariant * retval, NPVariant * result)
+npfrida_object_gvariant_to_npvariant (NPFridaObject * self, GVariant * retval, NPVariant * result)
 {
   const GVariantType * type;
 
@@ -597,7 +597,7 @@ cloud_spy_object_gvariant_to_npvariant (CloudSpyObject * self, GVariant * retval
     NPVariant variant;
     STRINGZ_TO_NPVARIANT (g_variant_get_string (retval, NULL), variant);
     VOID_TO_NPVARIANT (*result);
-    cloud_spy_nsfuncs->invoke (self->priv->npp, self->priv->json, cloud_spy_nsfuncs->getstringidentifier ("parse"), &variant, 1, result);
+    npfrida_nsfuncs->invoke (self->priv->npp, self->priv->json, npfrida_nsfuncs->getstringidentifier ("parse"), &variant, 1, result);
   }
   else
   {
@@ -606,7 +606,7 @@ cloud_spy_object_gvariant_to_npvariant (CloudSpyObject * self, GVariant * retval
 }
 
 static gboolean
-cloud_spy_object_gvalue_to_npvariant (CloudSpyObject * self, const GValue * gvalue, NPVariant * result)
+npfrida_object_gvalue_to_npvariant (NPFridaObject * self, const GValue * gvalue, NPVariant * result)
 {
   switch (G_VALUE_TYPE (gvalue))
   {
@@ -629,7 +629,7 @@ cloud_spy_object_gvalue_to_npvariant (CloudSpyObject * self, const GValue * gval
       NPVariant variant;
       STRINGZ_TO_NPVARIANT (g_value_get_string (gvalue), variant);
       VOID_TO_NPVARIANT (*result);
-      cloud_spy_nsfuncs->invoke (self->priv->npp, self->priv->json, cloud_spy_nsfuncs->getstringidentifier ("parse"), &variant, 1, result);
+      npfrida_nsfuncs->invoke (self->priv->npp, self->priv->json, npfrida_nsfuncs->getstringidentifier ("parse"), &variant, 1, result);
       break;
     case G_TYPE_VARIANT:
     {
@@ -643,7 +643,7 @@ cloud_spy_object_gvalue_to_npvariant (CloudSpyObject * self, const GValue * gval
       }
       else if (g_variant_is_of_type (variant, G_VARIANT_TYPE ("ay")))
       {
-        OBJECT_TO_NPVARIANT (cloud_spy_byte_array_new (self->priv->npp,
+        OBJECT_TO_NPVARIANT (npfrida_byte_array_new (self->priv->npp,
             static_cast<const guint8 *> (g_variant_get_data (variant)), g_variant_get_size (variant)), *result);
         break;
       }
@@ -656,17 +656,17 @@ cloud_spy_object_gvalue_to_npvariant (CloudSpyObject * self, const GValue * gval
   return TRUE;
 }
 
-static NPClass cloud_spy_object_template_np_class =
+static NPClass npfrida_object_template_np_class =
 {
   NP_CLASS_STRUCT_VERSION,
-  cloud_spy_object_allocate,
-  cloud_spy_object_deallocate,
-  cloud_spy_object_invalidate,
-  cloud_spy_object_has_method,
-  cloud_spy_object_invoke,
-  cloud_spy_object_invoke_default,
-  cloud_spy_object_has_property,
-  cloud_spy_object_get_property,
+  npfrida_object_allocate,
+  npfrida_object_deallocate,
+  npfrida_object_invalidate,
+  npfrida_object_has_method,
+  npfrida_object_invoke,
+  npfrida_object_invoke_default,
+  npfrida_object_has_property,
+  npfrida_object_get_property,
   NULL,
   NULL,
   NULL,
@@ -677,13 +677,13 @@ G_LOCK_DEFINE_STATIC (np_class_by_gobject_class);
 static GHashTable * np_class_by_gobject_class = NULL;
 
 void
-cloud_spy_object_type_init (void)
+npfrida_object_type_init (void)
 {
   np_class_by_gobject_class = g_hash_table_new_full (g_direct_hash, g_direct_equal, g_type_class_unref, g_free);
 }
 
 void
-cloud_spy_object_type_deinit (void)
+npfrida_object_type_deinit (void)
 {
   if (np_class_by_gobject_class != NULL)
   {
@@ -693,23 +693,23 @@ cloud_spy_object_type_deinit (void)
 }
 
 gpointer
-cloud_spy_object_type_get_np_class (GType gtype)
+npfrida_object_type_get_np_class (GType gtype)
 {
-  CloudSpyObjectClass * gobject_class;
-  CloudSpyNPObjectClass * np_class;
+  NPFridaObjectClass * gobject_class;
+  NPFridaNPObjectClass * np_class;
 
-  g_assert (g_type_is_a (gtype, CLOUD_SPY_TYPE_OBJECT));
+  g_assert (g_type_is_a (gtype, NPFRIDA_TYPE_OBJECT));
 
-  gobject_class = CLOUD_SPY_OBJECT_CLASS (g_type_class_ref (gtype));
+  gobject_class = NPFRIDA_OBJECT_CLASS (g_type_class_ref (gtype));
 
   G_LOCK (np_class_by_gobject_class);
 
-  np_class = static_cast<CloudSpyNPObjectClass *> (g_hash_table_lookup (np_class_by_gobject_class, gobject_class));
+  np_class = static_cast<NPFridaNPObjectClass *> (g_hash_table_lookup (np_class_by_gobject_class, gobject_class));
   if (np_class == NULL)
   {
-    np_class = g_new (CloudSpyNPObjectClass, 1);
+    np_class = g_new (NPFridaNPObjectClass, 1);
 
-    memcpy (np_class, &cloud_spy_object_template_np_class, sizeof (cloud_spy_object_template_np_class));
+    memcpy (np_class, &npfrida_object_template_np_class, sizeof (npfrida_object_template_np_class));
 
     np_class->g_type = gtype;
     g_type_class_ref (gtype);
@@ -726,58 +726,58 @@ cloud_spy_object_type_get_np_class (GType gtype)
 }
 
 static GClosure *
-cloud_spy_closure_new (CloudSpyNPObject * object, NPObject * callback)
+npfrida_closure_new (NPFridaNPObject * object, NPObject * callback)
 {
   GClosure * closure;
-  CloudSpyClosure * self;
+  NPFridaClosure * self;
 
-  closure = g_closure_new_simple (sizeof (CloudSpyClosure), NULL);
-  g_closure_add_finalize_notifier (closure, NULL, cloud_spy_closure_finalize);
-  self = reinterpret_cast<CloudSpyClosure *> (closure);
+  closure = g_closure_new_simple (sizeof (NPFridaClosure), NULL);
+  g_closure_add_finalize_notifier (closure, NULL, npfrida_closure_finalize);
+  self = reinterpret_cast<NPFridaClosure *> (closure);
   self->object = object;
-  self->callback = cloud_spy_nsfuncs->retainobject (callback);
+  self->callback = npfrida_nsfuncs->retainobject (callback);
 
-  g_closure_set_marshal (closure, cloud_spy_closure_marshal);
+  g_closure_set_marshal (closure, npfrida_closure_marshal);
 
   return closure;
 }
 
 static void
-cloud_spy_closure_finalize (gpointer data, GClosure * closure)
+npfrida_closure_finalize (gpointer data, GClosure * closure)
 {
-  CloudSpyClosure * self = reinterpret_cast<CloudSpyClosure *> (closure);
+  NPFridaClosure * self = reinterpret_cast<NPFridaClosure *> (closure);
 
   (void) data;
 
-  cloud_spy_nsfuncs->releaseobject (self->callback);
+  npfrida_nsfuncs->releaseobject (self->callback);
 }
 
 static void
-cloud_spy_closure_marshal (GClosure * closure, GValue * return_gvalue, guint n_param_values, const GValue * param_values,
+npfrida_closure_marshal (GClosure * closure, GValue * return_gvalue, guint n_param_values, const GValue * param_values,
     gpointer invocation_hint, gpointer marshal_data)
 {
-  CloudSpyClosure * self = reinterpret_cast<CloudSpyClosure *> (closure);
-  CloudSpyClosureInvocation * invocation;
+  NPFridaClosure * self = reinterpret_cast<NPFridaClosure *> (closure);
+  NPFridaClosureInvocation * invocation;
   guint i;
 
   (void) return_gvalue;
   (void) invocation_hint;
   (void) marshal_data;
 
-  invocation = g_slice_new (CloudSpyClosureInvocation);
+  invocation = g_slice_new (NPFridaClosureInvocation);
   invocation->closure = self;
   invocation->args = g_value_array_new (n_param_values);
   for (i = 0; i != n_param_values; i++)
     g_value_array_append (invocation->args, &param_values[i]);
 
-  cloud_spy_nsfuncs->pluginthreadasynccall (self->object->g_object->priv->npp, cloud_spy_closure_invoke, invocation);
+  npfrida_nsfuncs->pluginthreadasynccall (self->object->g_object->priv->npp, npfrida_closure_invoke, invocation);
 }
 
 static void
-cloud_spy_closure_invoke (void * data)
+npfrida_closure_invoke (void * data)
 {
-  CloudSpyClosureInvocation * invocation = static_cast<CloudSpyClosureInvocation *> (data);
-  CloudSpyClosure * self = invocation->closure;
+  NPFridaClosureInvocation * invocation = static_cast<NPFridaClosureInvocation *> (data);
+  NPFridaClosure * self = invocation->closure;
   NPVariant * args;
   guint arg_count = invocation->args->n_values - 1;
   gboolean success = TRUE;
@@ -786,7 +786,7 @@ cloud_spy_closure_invoke (void * data)
   args = static_cast<NPVariant *> (g_alloca (arg_count * sizeof (NPVariant)));
   for (i = 1; i != invocation->args->n_values; i++)
   {
-    if (!cloud_spy_object_gvalue_to_npvariant (self->object->g_object, &invocation->args->values[i], &args[i - 1]))
+    if (!npfrida_object_gvalue_to_npvariant (self->object->g_object, &invocation->args->values[i], &args[i - 1]))
     {
       success = FALSE;
       g_debug ("failed to convert argument %u to a variant", i - 1);
@@ -798,13 +798,13 @@ cloud_spy_closure_invoke (void * data)
     NPVariant result;
 
     VOID_TO_NPVARIANT (result);
-    cloud_spy_nsfuncs->invokeDefault (self->object->g_object->priv->npp, self->callback, args, arg_count, &result);
-    cloud_spy_nsfuncs->releasevariantvalue (&result);
+    npfrida_nsfuncs->invokeDefault (self->object->g_object->priv->npp, self->callback, args, arg_count, &result);
+    npfrida_nsfuncs->releasevariantvalue (&result);
   }
 
   for (i = 0; i != arg_count; i++)
-    cloud_spy_nsfuncs->releasevariantvalue (&args[i]);
+    npfrida_nsfuncs->releasevariantvalue (&args[i]);
 
   g_value_array_free (invocation->args);
-  g_slice_free (CloudSpyClosureInvocation, invocation);
+  g_slice_free (NPFridaClosureInvocation, invocation);
 }
