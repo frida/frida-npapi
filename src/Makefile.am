@@ -9,9 +9,9 @@ endif
 lib_LTLIBRARIES = libnpfrida-codegen.la libnpfrida.la
 
 libnpfrida_codegen_la_SOURCES = \
-	api.vala \
-	root.vala \
-	codegen.c
+	npfrida-api.vala \
+	npfrida-root.vala \
+	npfrida-codegen.c
 libnpfrida_codegen_la_CFLAGS = \
 	-w
 libnpfrida_codegen_la_LDFLAGS = \
@@ -21,22 +21,21 @@ libnpfrida_codegen_la_VALAFLAGS = \
 	--header=npfrida.h \
 	--vapidir=$(abs_sourcedir) \
 	--pkg=npfrida-object \
-	--pkg=json-glib-1.0 \
-	--pkg=frida-core \
+	@NPFRIDA_PACKAGES@ \
 	@NPFRIDA_VALAFLAGS@
 
 libnpfrida_la_SOURCES = \
-	plugin.h \
-	plugin.cpp \
-	object.h \
-	object-priv.h \
-	object.cpp \
-	promise.h \
-	promise.cpp \
-	byte-array.h \
-	byte-array.cpp \
-	api-glue.c \
-	root.c
+	npfrida-plugin.h \
+	npfrida-plugin.cpp \
+	npfrida-object.h \
+	npfrida-object-priv.h \
+	npfrida-object.cpp \
+	npfrida-promise.h \
+	npfrida-promise.cpp \
+	npfrida-byte-array.h \
+	npfrida-byte-array.cpp \
+	npfrida-api-glue.c \
+	npfrida-root.c
 libnpfrida_la_LDFLAGS = \
 	$(NPFRIDA_LDFLAGS) \
 	$(extra_ldflags)
