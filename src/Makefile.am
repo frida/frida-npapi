@@ -14,6 +14,7 @@ noinst_LTLIBRARIES = libnpfrida-codegen.la libnpfrida-convenience.la
 libnpfrida_la_SOURCES = \
 	$(NULL)
 libnpfrida_la_LDFLAGS = \
+	-avoid-version -shared \
 	$(NPFRIDA_LDFLAGS) \
 	$(extra_ldflags)
 libnpfrida_la_LIBADD = \
