@@ -23,4 +23,8 @@
 /m4/lt*.m4
 /src/Makefile
 /src/Makefile.in
+/src/npfrida-api.c
+/src/npfrida-root.c
+/src/npfrida.h
+/src/npfrida.vapi
 /stamp-h1
