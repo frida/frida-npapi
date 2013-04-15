@@ -6,7 +6,34 @@ else
 extra_ldflags += -export-symbols-regex "^(NP_GetMIMEDescription|NP_GetValue|NP_GetEntryPoints|NP_Initialize|NP_Shutdown)$$"
 endif
 
-noinst_LTLIBRARIES = libnpfrida-codegen.la libnpfrida-glue.la
+plugindir = $(libdir)
+plugin_LTLIBRARIES = libnpfrida.la
+
+noinst_LTLIBRARIES = libnpfrida-codegen.la libnpfrida-convenience.la
+
+libnpfrida_la_SOURCES = \
+	$(NULL)
+libnpfrida_la_LDFLAGS = \
+	$(NPFRIDA_LDFLAGS) \
+	$(extra_ldflags)
+libnpfrida_la_LIBADD = \
+	libnpfrida-convenience.la \
+	$(NPFRIDA_LIBS)
+libnpfrida_la_LIBTOOLFLAGS = \
+	--tag=disable-static
+
+libnpfrida_convenience_la_SOURCES = \
+	npfrida-plugin.h \
+	npfrida-plugin.cpp \
+	npfrida-object.h \
+	npfrida-object-priv.h \
+	npfrida-object.cpp \
+	npfrida-promise.h \
+	npfrida-promise.cpp \
+	npfrida-byte-array.h \
+	npfrida-byte-array.cpp \
+	npfrida-api-glue.c \
+	npfrida-root.c
 
 libnpfrida_codegen_la_SOURCES = \
 	npfrida-api.vala \
@@ -26,24 +53,6 @@ libnpfrida_codegen_la_VALAFLAGS = \
 	--pkg=npfrida-object \
 	@NPFRIDA_PACKAGES@ \
 	@NPFRIDA_VALAFLAGS@
-
-libnpfrida_glue_la_SOURCES = \
-	npfrida-plugin.h \
-	npfrida-plugin.cpp \
-	npfrida-object.h \
-	npfrida-object-priv.h \
-	npfrida-object.cpp \
-	npfrida-promise.h \
-	npfrida-promise.cpp \
-	npfrida-byte-array.h \
-	npfrida-byte-array.cpp \
-	npfrida-api-glue.c \
-	npfrida-root.c
-libnpfrida_glue_la_LDFLAGS = \
-	$(NPFRIDA_LDFLAGS) \
-	$(extra_ldflags)
-libnpfrida_glue_la_LIBADD = \
-	$(NPFRIDA_LIBS)
 
 AM_CPPFLAGS = \
 	-include config.h \
