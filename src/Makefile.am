@@ -6,7 +6,7 @@ else
 extra_ldflags += -export-symbols-regex "^(NP_GetMIMEDescription|NP_GetValue|NP_GetEntryPoints|NP_Initialize|NP_Shutdown)$$"
 endif
 
-plugindir = $(libdir)
+plugindir = $(libdir)/browser/plugins
 plugin_LTLIBRARIES = libnpfrida.la
 
 noinst_LTLIBRARIES = libnpfrida-codegen.la libnpfrida-convenience.la
