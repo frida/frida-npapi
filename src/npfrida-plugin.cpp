@@ -4,7 +4,7 @@
 #include "npfrida-object.h"
 #include "npfrida-object-priv.h"
 
-#include <glib-object.h>
+#include <frida-core.h>
 #ifdef G_OS_WIN32
 # define VC_EXTRALEAN
 # include <windows.h>
@@ -18,8 +18,6 @@ static gint npfrida_get_process_id (void);
 
 NPNetscapeFuncs * npfrida_nsfuncs = NULL;
 GMainContext * npfrida_main_context = NULL;
-static GMainLoop * npfrida_main_loop = NULL;
-static GThread * npfrida_main_thread = NULL;
 
 G_LOCK_DEFINE_STATIC (npfrida_plugin);
 static GHashTable * npfrida_plugin_roots = NULL;
@@ -63,7 +61,7 @@ static void
 npfrida_startup (void)
 {
   g_setenv ("G_DEBUG", "fatal-warnings:fatal-criticals", TRUE);
-  g_type_init ();
+  frida_init ();
 }
 
 static void
@@ -97,28 +95,6 @@ npfrida_deinit_logging (NPP instance)
     g_hash_table_iter_next (&iter, reinterpret_cast<gpointer *> (&replacement_instance), NULL);
     npfrida_init_logging (replacement_instance);
   }
-}
-
-static gpointer
-npfrida_run_main_loop (gpointer data)
-{
-  (void) data;
-
-  g_main_context_push_thread_default (npfrida_main_context);
-  g_main_loop_run (npfrida_main_loop);
-  g_main_context_pop_thread_default (npfrida_main_context);
-
-  return NULL;
-}
-
-static gboolean
-npfrida_stop_main_loop (gpointer data)
-{
-  (void) data;
-
-  g_main_loop_quit (npfrida_main_loop);
-
-  return FALSE;
 }
 
 static NPError
@@ -311,9 +287,7 @@ NP_Initialize (NPNetscapeFuncs * nf)
   npfrida_nsfuncs = nf;
   npfrida_plugin_roots = g_hash_table_new_full (NULL, NULL, NULL, npfrida_root_object_destroy);
 
-  npfrida_main_context = g_main_context_new ();
-  npfrida_main_loop = g_main_loop_new (npfrida_main_context, FALSE);
-  npfrida_main_thread = g_thread_create (npfrida_run_main_loop, NULL, TRUE, NULL);
+  npfrida_main_context = frida_get_main_context ();
 
   return NPERR_NO_ERROR;
 }
@@ -321,19 +295,8 @@ NP_Initialize (NPNetscapeFuncs * nf)
 NPError OSCALL
 NP_Shutdown (void)
 {
-  GSource * source;
+  frida_shutdown ();
 
-  source = g_idle_source_new ();
-  g_source_set_priority (source, G_PRIORITY_LOW);
-  g_source_set_callback (source, npfrida_stop_main_loop, NULL, NULL);
-  g_source_attach (source, npfrida_main_context);
-  g_source_unref (source);
-
-  g_thread_join (npfrida_main_thread);
-  npfrida_main_thread = NULL;
-  g_main_loop_unref (npfrida_main_loop);
-  npfrida_main_loop = NULL;
-  g_main_context_unref (npfrida_main_context);
   npfrida_main_context = NULL;
 
   g_hash_table_unref (npfrida_plugin_roots);
@@ -341,6 +304,8 @@ NP_Shutdown (void)
   npfrida_nsfuncs = NULL;
 
   npfrida_object_type_deinit ();
+
+  frida_deinit ();
 
   return NPERR_NO_ERROR;
 }

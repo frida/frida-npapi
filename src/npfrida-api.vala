@@ -1,11 +1,11 @@
 namespace NPFrida {
 	[DBus (name = "com.appspot.npfrida.RootApi")]
 	public interface RootApi : Object {
-		public abstract async string enumerate_devices () throws IOError;
-		public abstract async string enumerate_processes (uint device_id) throws IOError;
-		public abstract async void attach_to (uint device_id, uint pid, string source) throws IOError;
-		public abstract async void post_message (uint device_id, uint pid, string message) throws IOError;
-		public abstract async void detach_from (uint device_id, uint pid) throws IOError;
+		public abstract async string enumerate_devices () throws Error;
+		public abstract async string enumerate_processes (uint device_id) throws Error;
+		public abstract async void attach_to (uint device_id, uint pid, string source) throws Error;
+		public abstract async void post_message (uint device_id, uint pid, string message) throws Error;
+		public abstract async void detach_from (uint device_id, uint pid) throws Error;
 
 		public signal void devices_changed ();
 		public signal void detach (uint device_id, uint pid);

@@ -1,5 +1,5 @@
 AC_INIT([frida-npapi], [1.0.0])
-AC_CONFIG_SRCDIR([src/plugin.cpp])
+AC_CONFIG_SRCDIR([src/npfrida-plugin.cpp])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
@@ -73,8 +73,8 @@ if [[ "x$HAVE_IOS" = "xyes" ]]; then
 fi
 AC_SUBST(NPFRIDA_VALAFLAGS)
 
-pkg_modules="frida-core-1.0"
-NPFRIDA_PACKAGES="--pkg frida-core-1.0"
+pkg_modules="frida-core-1.0 gee-1.0 json-glib-1.0"
+NPFRIDA_PACKAGES="--pkg frida-core-1.0 --pkg gee-1.0 --pkg json-glib-1.0"
 PKG_CHECK_MODULES(NPFRIDA, [$pkg_modules])
 AC_SUBST(NPFRIDA_CFLAGS)
 AC_SUBST(NPFRIDA_LDFLAGS)

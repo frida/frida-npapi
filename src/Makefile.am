@@ -6,7 +6,7 @@ else
 extra_ldflags += -export-symbols-regex "^(NP_GetMIMEDescription|NP_GetValue|NP_GetEntryPoints|NP_Initialize|NP_Shutdown)$$"
 endif
 
-lib_LTLIBRARIES = libnpfrida-codegen.la libnpfrida.la
+noinst_LTLIBRARIES = libnpfrida-codegen.la libnpfrida-glue.la
 
 libnpfrida_codegen_la_SOURCES = \
 	npfrida-api.vala \
@@ -15,7 +15,10 @@ libnpfrida_codegen_la_SOURCES = \
 libnpfrida_codegen_la_CFLAGS = \
 	-w
 libnpfrida_codegen_la_LDFLAGS = \
-	-export-symbols-regex "^__hack_to_force_build_order__$$"
+	-export-symbols-regex "^__hack_to_force_build_order__$$" \
+	$(NPFRIDA_LDFLAGS) \
+libnpfrida_codegen_la_LIBADD = \
+	$(NPFRIDA_LIBS)
 libnpfrida_codegen_la_VALAFLAGS = \
 	--library=npfrida \
 	--header=npfrida.h \
@@ -24,7 +27,7 @@ libnpfrida_codegen_la_VALAFLAGS = \
 	@NPFRIDA_PACKAGES@ \
 	@NPFRIDA_VALAFLAGS@
 
-libnpfrida_la_SOURCES = \
+libnpfrida_glue_la_SOURCES = \
 	npfrida-plugin.h \
 	npfrida-plugin.cpp \
 	npfrida-object.h \
@@ -36,13 +39,11 @@ libnpfrida_la_SOURCES = \
 	npfrida-byte-array.cpp \
 	npfrida-api-glue.c \
 	npfrida-root.c
-libnpfrida_la_LDFLAGS = \
+libnpfrida_glue_la_LDFLAGS = \
 	$(NPFRIDA_LDFLAGS) \
 	$(extra_ldflags)
-libnpfrida_la_LIBADD = \
+libnpfrida_glue_la_LIBADD = \
 	$(NPFRIDA_LIBS)
-libnpfrida_la_LIBTOOLFLAGS = \
-	--tag=disable-static
 
 AM_CPPFLAGS = \
 	-include config.h \
