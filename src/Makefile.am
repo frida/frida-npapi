@@ -9,7 +9,10 @@ endif
 plugindir = $(libdir)/browser/plugins
 plugin_LTLIBRARIES = libnpfrida.la
 
-noinst_LTLIBRARIES = libnpfrida-codegen.la libnpfrida-convenience.la
+noinst_LTLIBRARIES = \
+	libnpfrida-codegen.la \
+	libnpfrida-handwritten.la \
+	libnpfrida-generated.la
 
 libnpfrida_la_SOURCES = \
 	$(NULL)
@@ -18,12 +21,13 @@ libnpfrida_la_LDFLAGS = \
 	$(NPFRIDA_LDFLAGS) \
 	$(extra_ldflags)
 libnpfrida_la_LIBADD = \
-	libnpfrida-convenience.la \
+	libnpfrida-handwritten.la \
+	libnpfrida-generated.la \
 	$(NPFRIDA_LIBS)
 libnpfrida_la_LIBTOOLFLAGS = \
 	--tag=disable-static
 
-libnpfrida_convenience_la_SOURCES = \
+libnpfrida_handwritten_la_SOURCES = \
 	npfrida-plugin.h \
 	npfrida-plugin.cpp \
 	npfrida-object.h \
@@ -33,8 +37,12 @@ libnpfrida_convenience_la_SOURCES = \
 	npfrida-promise.cpp \
 	npfrida-byte-array.h \
 	npfrida-byte-array.cpp \
-	npfrida-api-glue.c \
+	npfrida-api-glue.c
+
+libnpfrida_generated_la_SOURCES = \
 	npfrida-root.c
+libnpfrida_generated_la_CFLAGS = \
+	-w
 
 libnpfrida_codegen_la_SOURCES = \
 	npfrida-api.vala \

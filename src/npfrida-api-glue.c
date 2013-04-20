@@ -45,6 +45,12 @@ static void npfrida_dispatcher_invocation_return_gerror (GDBusMethodInvocation *
 #define g_dbus_method_invocation_return_gerror(invocation, error) \
     npfrida_dispatcher_invocation_return_gerror (invocation, error)
 
+#ifdef __clang__
+# pragma clang diagnostic push
+# pragma clang diagnostic ignored "-Wincompatible-pointer-types"
+# pragma clang diagnostic ignored "-Wunused-variable"
+# pragma clang diagnostic ignored "-Wunused-value"
+#endif
 #ifdef _MSC_VER
 # pragma warning (push)
 # pragma warning (disable: 4054 4055 4090 4100 4152 4189 4267 4702)
@@ -52,6 +58,9 @@ static void npfrida_dispatcher_invocation_return_gerror (GDBusMethodInvocation *
 #include "npfrida-api.c"
 #ifdef _MSC_VER
 # pragma warning (pop)
+#endif
+#ifdef __clang__
+# pragma clang diagnostic pop
 #endif
 
 #undef g_object_unref
@@ -191,7 +200,7 @@ npfrida_dispatcher_connection_send_message (GDBusConnection * connection, GDBusM
   (void) error;
 
   result = g_variant_ref (g_dbus_message_get_body (message));
-  g_simple_async_result_set_op_res_gpointer (self->res, result, g_variant_unref);
+  g_simple_async_result_set_op_res_gpointer (self->res, result, (GDestroyNotify) g_variant_unref);
   g_simple_async_result_complete (self->res);
 
   return TRUE;
