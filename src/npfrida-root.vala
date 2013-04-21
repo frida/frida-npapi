@@ -22,7 +22,8 @@ namespace NPFrida {
 				builder.begin_object ();
 				builder.set_member_name ("id").add_int_value (device.id);
 				builder.set_member_name ("name").add_string_value (device.name);
-				builder.set_member_name ("type").add_string_value (device.kind);
+				append_icon ("icon", device.icon, builder);
+				builder.set_member_name ("type").add_string_value (device_type_to_string (device.dtype));
 				builder.end_object ();
 			}
 			builder.end_array ();
@@ -50,6 +51,19 @@ namespace NPFrida {
 			var generator = new Json.Generator ();
 			generator.set_root (builder.get_root ());
 			return generator.to_data (null);
+		}
+
+		private static string device_type_to_string (Frida.DeviceType type) {
+			switch (type) {
+				case Frida.DeviceType.LOCAL:
+					return "local";
+				case Frida.DeviceType.TETHER:
+					return "tether";
+				case Frida.DeviceType.REMOTE:
+					return "remote";
+				default:
+					assert_not_reached ();
+			}
 		}
 
 		private static void append_icon (string member_name, Frida.Icon? icon, Json.Builder builder) {
