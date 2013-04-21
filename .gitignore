@@ -1,8 +1,10 @@
+*.aps
 *.la
 *.lo
 *.o
 *.stamp*
 *.swp
+*.user
 *~
 .deps
 .libs

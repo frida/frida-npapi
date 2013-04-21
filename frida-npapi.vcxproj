@@ -1,0 +1,195 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{99C17854-578D-49E7-BB80-AEBE4B5D3BA6}</ProjectGuid>
+    <RootNamespace>frida</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectName>frida-npapi</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(SolutionDir)frida-$(Configuration).props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(SolutionDir)frida-$(Configuration).props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(SolutionDir)frida-$(Configuration).props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(SolutionDir)frida-$(Configuration).props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)build\frida-windows\$(PlatformName)-$(Configuration)\lib\browser\plugins\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)build\frida-windows\$(PlatformName)-$(Configuration)\lib\browser\plugins\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)build\frida-windows\$(PlatformName)-$(Configuration)\lib\browser\plugins\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)build\frida-windows\$(PlatformName)-$(Configuration)\lib\browser\plugins\</OutDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">npfrida</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">npfrida</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">npfrida</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">npfrida</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <ModuleDefinitionFile>src\npfrida.def</ModuleDefinitionFile>
+    </Link>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(IntDir)src;$(ProjectDir)src;$(IntDir)..\frida-core;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <ModuleDefinitionFile>src\npfrida.def</ModuleDefinitionFile>
+    </Link>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(IntDir)src;$(ProjectDir)src;$(IntDir)..\frida-core;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <ModuleDefinitionFile>src\npfrida.def</ModuleDefinitionFile>
+    </Link>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(IntDir)src;$(ProjectDir)src;$(IntDir)..\frida-core;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <ModuleDefinitionFile>src\npfrida.def</ModuleDefinitionFile>
+    </Link>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(IntDir)src;$(ProjectDir)src;$(IntDir)..\frida-core;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="src\npfrida-api-glue.c" />
+    <ClCompile Include="src\npfrida-object.cpp" />
+    <ClCompile Include="src\npfrida-plugin.cpp" />
+    <ClCompile Include="$(IntDir)src\npfrida-api.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)src\npfrida-root.c">
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">TurnOffAllWarnings</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">TurnOffAllWarnings</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">TurnOffAllWarnings</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">TurnOffAllWarnings</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="src\npfrida-promise.cpp" />
+    <ClCompile Include="src\npfrida-byte-array.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\frida-core\frida-core.vcxproj">
+      <Project>{b7dc9b02-a5ff-4aa1-b2a2-dc1653168d44}</Project>
+      <Private>false</Private>
+      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
+      <CopyLocalSatelliteAssemblies>false</CopyLocalSatelliteAssemblies>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+      <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="src\npfrida.def" />
+    <CustomBuild Include="src\npfrida-api.vala">
+      <FileType>Document</FileType>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Compiling vala code</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)valacode.stamp;%(Outputs)</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ValaCompiler);$(ProjectDir)src\npfrida-object.vapi;$(ProjectDir)src\npfrida-api.vala;$(ProjectDir)src\npfrida-root.vala;%(AdditionalInputs)</AdditionalInputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Compiling vala code</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)valacode.stamp;%(Outputs)</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ValaCompiler);$(ProjectDir)src\npfrida-object.vapi;$(ProjectDir)src\npfrida-api.vala;$(ProjectDir)src\npfrida-root.vala;%(AdditionalInputs)</AdditionalInputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compiling vala code</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)valacode.stamp;%(Outputs)</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ValaCompiler);$(ProjectDir)src\npfrida-object.vapi;$(ProjectDir)src\npfrida-api.vala;$(ProjectDir)src\npfrida-root.vala;%(AdditionalInputs)</AdditionalInputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compiling vala code</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)valacode.stamp;%(Outputs)</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ValaCompiler);$(ProjectDir)src\npfrida-object.vapi;$(ProjectDir)src\npfrida-api.vala;$(ProjectDir)src\npfrida-root.vala;%(AdditionalInputs)</AdditionalInputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(ValaCompiler)" src/npfrida-api.vala src/npfrida-root.vala -D WINDOWS --ccode --directory=$(IntDir) --library=npfrida --header=$(IntDir)npfrida.h --vapidir=src --vapidir="$(IntDir)..\frida-core" $(ValaFlags) --pkg=npfrida-object --pkg=config --pkg=gee-1.0 --pkg=gio-2.0 --pkg=json-glib-1.0 --pkg=frida-core || exit 1
+echo &gt; "$(IntDir)valacode.stamp"
+</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"$(ValaCompiler)" src/npfrida-api.vala src/npfrida-root.vala -D WINDOWS --ccode --directory=$(IntDir) --library=npfrida --header=$(IntDir)npfrida.h --vapidir=src --vapidir="$(IntDir)..\frida-core" $(ValaFlags) --pkg=npfrida-object --pkg=config --pkg=gee-1.0 --pkg=gio-2.0 --pkg=json-glib-1.0 --pkg=frida-core || exit 1
+echo &gt; "$(IntDir)valacode.stamp"
+</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">"$(ValaCompiler)" src/npfrida-api.vala src/npfrida-root.vala -D WINDOWS --ccode --directory=$(IntDir) --library=npfrida --header=$(IntDir)npfrida.h --vapidir=src --vapidir="$(IntDir)..\frida-core" $(ValaFlags) --pkg=npfrida-object --pkg=config --pkg=gee-1.0 --pkg=gio-2.0 --pkg=json-glib-1.0 --pkg=frida-core || exit 1
+echo &gt; "$(IntDir)valacode.stamp"
+</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">"$(ValaCompiler)" src/npfrida-api.vala src/npfrida-root.vala -D WINDOWS --ccode --directory=$(IntDir) --library=npfrida --header=$(IntDir)npfrida.h --vapidir=src --vapidir="$(IntDir)..\frida-core" $(ValaFlags) --pkg=npfrida-object --pkg=config --pkg=gee-1.0 --pkg=gio-2.0 --pkg=json-glib-1.0 --pkg=frida-core || exit 1
+echo &gt; "$(IntDir)valacode.stamp"
+</Command>
+    </CustomBuild>
+    <None Include="src\npfrida-root.vala" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(IntDir)npfrida.h" />
+    <ClInclude Include="src\npfrida-object.h" />
+    <ClInclude Include="src\npfrida-plugin.h" />
+    <ClInclude Include="src\npfrida-promise.h" />
+    <ClInclude Include="src\npfrida-byte-array.h" />
+    <ClInclude Include="src\npapi.h" />
+    <ClInclude Include="src\npfunctions.h" />
+    <ClInclude Include="src\npruntime.h" />
+    <ClInclude Include="src\nptypes.h" />
+    <ClInclude Include="src\resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="src\npfrida.rc" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
