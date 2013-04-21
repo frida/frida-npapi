@@ -12,7 +12,7 @@
 #endif
 #include "npfunctions.h"
 
-static gchar npfrida_mime_description[] = "application/x-vnd-npfrida:.cspy:ole.andre.ravnas@tillitech.com";
+static gchar npfrida_mime_description[] = "application/x-vnd-frida:.frida:ole.andre.ravnas@tillitech.com";
 
 static gint npfrida_get_process_id (void);
 
@@ -133,7 +133,7 @@ npfrida_plugin_new (NPMIMEType plugin_type, NPP instance, uint16_t mode, int16_t
   npfrida_init_logging (instance);
   G_UNLOCK (npfrida_plugin);
 
-  g_debug ("NPFrida plugin %p instantiated in pid %d", instance, npfrida_get_process_id ());
+  g_debug ("Frida plugin %p instantiated in pid %d", instance, npfrida_get_process_id ());
 
   return NPERR_NO_ERROR;
 }
@@ -157,7 +157,7 @@ npfrida_plugin_destroy (NPP instance, NPSavedData ** saved)
   npfrida_deinit_logging (instance);
   G_UNLOCK (npfrida_plugin);
 
-  g_debug ("NPFrida plugin %p destroyed in pid %d", instance, npfrida_get_process_id ());
+  g_debug ("Frida plugin %p destroyed in pid %d", instance, npfrida_get_process_id ());
 
   return NPERR_NO_ERROR;
 }
@@ -239,10 +239,10 @@ NP_GetValue (void * reserved, NPPVariable variable, void * value)
   switch (variable)
   {
     case NPPVpluginNameString:
-      *(static_cast<const char **> (value)) = "NPFrida";
+      *(static_cast<const char **> (value)) = "Frida";
       break;
     case NPPVpluginDescriptionString:
-      *(static_cast<const char **> (value)) = "<a href=\"http://apps.facebook.com/npfrida/\">NPFrida</a> plugin.";
+      *(static_cast<const char **> (value)) = "<a href=\"http://github.com/frida/\">Frida</a> plugin.";
       break;
     default:
       return NPERR_INVALID_PARAM;
