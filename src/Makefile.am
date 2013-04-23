@@ -1,7 +1,7 @@
 extra_ldflags =
 
 if OS_LINUX
-extra_ldflags += -Wl,--version-script -Wl,npfrida.version
+extra_ldflags += -Wl,--version-script -Wl,$(srcdir)/npfrida.version
 else
 extra_ldflags += -export-symbols-regex "^(NP_GetMIMEDescription|NP_GetValue|NP_GetEntryPoints|NP_Initialize|NP_Shutdown)$$"
 endif
