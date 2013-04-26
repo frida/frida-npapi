@@ -33,6 +33,8 @@ struct _NPFridaInvokeContext
   gchar * function_name;
   GVariant * arguments;
   NPObject * promise;
+  GVariant * retval;
+  GError * error;
 };
 
 struct _NPFridaGetPropertyContext
@@ -64,8 +66,9 @@ static void npfrida_object_finalize (GObject * object);
 
 static gboolean npfrida_object_do_destroy (gpointer data);
 static void npfrida_object_destroy_ready (GObject * source_object, GAsyncResult * res, gpointer user_data);
-static gboolean npfrida_object_do_invoke (gpointer user_data);
-static void npfrida_object_invoke_ready (GObject * source_object, GAsyncResult * res, gpointer user_data);
+static gboolean npfrida_object_begin_invoke (gpointer user_data);
+static void npfrida_object_on_invoke_ready (GObject * source_object, GAsyncResult * res, gpointer user_data);
+static void npfrida_object_end_invoke (void * data);
 static gboolean npfrida_object_do_get_property (gpointer data);
 static bool npfrida_object_add_event_listener (NPObject * npobj, const NPVariant * args, uint32_t arg_count, NPVariant * result);
 
@@ -287,7 +290,7 @@ npfrida_object_invoke (NPObject * npobj, NPIdentifier name, const NPVariant * ar
 
   source = g_idle_source_new ();
   g_source_set_priority (source, G_PRIORITY_HIGH);
-  g_source_set_callback (source, npfrida_object_do_invoke, ctx, NULL);
+  g_source_set_callback (source, npfrida_object_begin_invoke, ctx, NULL);
   g_source_attach (source, npfrida_main_context);
   g_source_unref (source);
 
@@ -304,52 +307,57 @@ invoke_failed:
 }
 
 static gboolean
-npfrida_object_do_invoke (gpointer user_data)
+npfrida_object_begin_invoke (gpointer user_data)
 {
   NPFridaInvokeContext * ctx = static_cast<NPFridaInvokeContext *> (user_data);
   NPFridaPromise * promise = reinterpret_cast<NPFridaPromise *> (ctx->promise);
   NPFridaObject * self = static_cast<NPFridaNPObject *> (promise->user_data)->g_object;
 
   npfrida_dispatcher_invoke (self->priv->dispatcher, ctx->function_name, ctx->arguments,
-      npfrida_object_invoke_ready, ctx);
+      npfrida_object_on_invoke_ready, ctx);
 
   return FALSE;
 }
 
 static void
-npfrida_object_invoke_ready (GObject * source_object, GAsyncResult * res, gpointer user_data)
+npfrida_object_on_invoke_ready (GObject * source_object, GAsyncResult * res, gpointer user_data)
 {
   NPFridaInvokeContext * ctx = static_cast<NPFridaInvokeContext *> (user_data);
   NPFridaPromise * promise = reinterpret_cast<NPFridaPromise *> (ctx->promise);
   NPFridaObject * self = static_cast<NPFridaNPObject *> (promise->user_data)->g_object;
-  GVariant * retval;
-  GError * error = NULL;
 
   (void) source_object;
 
-  retval = npfrida_dispatcher_invoke_finish (self->priv->dispatcher, res, &error);
-  if (error == NULL)
+  ctx->retval = npfrida_dispatcher_invoke_finish (self->priv->dispatcher, res, &ctx->error);
+  npfrida_nsfuncs->pluginthreadasynccall (self->priv->npp, npfrida_object_end_invoke, ctx);
+}
+
+static void
+npfrida_object_end_invoke (void * data)
+{
+  NPFridaInvokeContext * ctx = static_cast<NPFridaInvokeContext *> (data);
+  NPFridaPromise * promise = reinterpret_cast<NPFridaPromise *> (ctx->promise);
+  NPFridaObject * self = static_cast<NPFridaNPObject *> (promise->user_data)->g_object;
+
+  if (ctx->error == NULL)
   {
-    if (retval == NULL)
+    if (ctx->retval == NULL)
     {
       npfrida_promise_resolve (promise, NULL, 0);
     }
     else
     {
       NPVariant val;
-      npfrida_object_return_value_to_npvariant (self, retval, &val);
+      npfrida_object_return_value_to_npvariant (self, ctx->retval, &val);
       npfrida_promise_resolve (promise, &val, 1);
       npfrida_nsfuncs->releasevariantvalue (&val);
     }
-
-    if (retval != NULL)
-      g_variant_unref (retval);
   }
   else
   {
     NPVariant message;
 
-    STRINGZ_TO_NPVARIANT (error->message, message);
+    STRINGZ_TO_NPVARIANT (ctx->error->message, message);
     npfrida_promise_reject (promise, &message, 1);
   }
 
@@ -357,6 +365,9 @@ npfrida_object_invoke_ready (GObject * source_object, GAsyncResult * res, gpoint
   if (ctx->arguments != NULL)
     g_variant_unref (ctx->arguments);
   npfrida_nsfuncs->releaseobject (ctx->promise);
+  if (ctx->retval != NULL)
+    g_variant_unref (ctx->retval);
+  g_clear_error (&ctx->error);
   g_slice_free (NPFridaInvokeContext, ctx);
 }
 
