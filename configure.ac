@@ -18,6 +18,12 @@ AM_PROG_VALAC([0.10.0])
 AC_PROG_INSTALL
 LT_INIT
 
+if echo $CC | grep -q "gcc"; then
+  # We don't care that much about GCC warnings as we cannot silence all of them
+  # for the Vala-generated code...
+  CFLAGS="$CFLAGS -w"
+fi
+
 case $host_os in
   linux*)  HAVE_LINUX=yes  ;;
   darwin*) HAVE_DARWIN=yes ;;
