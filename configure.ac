@@ -41,7 +41,7 @@ AM_CONDITIONAL(OS_DARWIN, [test "x$HAVE_DARWIN" = "xyes"])
 case $host_os in
   darwin*)
     case $host_cpu in
-      arm)
+      arm|aarch64)
         HAVE_MAC=no
         HAVE_IOS=yes
         ;;
