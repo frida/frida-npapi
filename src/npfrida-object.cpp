@@ -18,7 +18,7 @@ struct _NPFridaObjectPrivate
 {
   NPP npp;
   NPFridaDispatcher * dispatcher;
-  GCond * cond;
+  GCond cond;
   NPObject * json;
 };
 
@@ -105,7 +105,7 @@ npfrida_object_init (NPFridaObject * self)
 {
   self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, NPFRIDA_TYPE_OBJECT, NPFridaObjectPrivate);
 
-  self->priv->cond = g_cond_new ();
+  g_cond_init (&self->priv->cond);
 }
 
 static void
@@ -145,7 +145,7 @@ npfrida_object_finalize (GObject * object)
 {
   NPFridaObject * self = NPFRIDA_OBJECT (object);
 
-  g_cond_free (self->priv->cond);
+  g_cond_clear (&self->priv->cond);
 
   G_OBJECT_CLASS (npfrida_object_parent_class)->finalize (object);
 }
@@ -166,7 +166,7 @@ npfrida_np_object_destroy (NPFridaNPObject * obj)
 
   G_LOCK (npfrida_object);
   while (!ctx.completed)
-    g_cond_wait (ctx.self->priv->cond, g_static_mutex_get_mutex (&G_LOCK_NAME (npfrida_object)));
+    g_cond_wait (&ctx.self->priv->cond, &G_LOCK_NAME (npfrida_object));
   G_UNLOCK (npfrida_object);
 }
 
@@ -191,7 +191,7 @@ npfrida_object_destroy_ready (GObject * source_object, GAsyncResult * res, gpoin
 
   G_LOCK (npfrida_object);
   ctx->completed = TRUE;
-  g_cond_signal (ctx->self->priv->cond);
+  g_cond_signal (&ctx->self->priv->cond);
   G_UNLOCK (npfrida_object);
 }
 
@@ -417,7 +417,7 @@ npfrida_object_get_property (NPObject * npobj, NPIdentifier name, NPVariant * re
 
   G_LOCK (npfrida_object);
   while (!ctx.completed)
-    g_cond_wait (ctx.self->priv->cond, g_static_mutex_get_mutex (&G_LOCK_NAME (npfrida_object)));
+    g_cond_wait (&ctx.self->priv->cond, &G_LOCK_NAME (npfrida_object));
   G_UNLOCK (npfrida_object);
 
   if (!npfrida_object_gvalue_to_npvariant (ctx.self, &ctx.value, result))
@@ -450,7 +450,7 @@ npfrida_object_do_get_property (gpointer data)
 
   G_LOCK (npfrida_object);
   ctx->completed = TRUE;
-  g_cond_signal (priv->cond);
+  g_cond_signal (&priv->cond);
   G_UNLOCK (npfrida_object);
 
   return FALSE;

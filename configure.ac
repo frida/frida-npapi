@@ -79,8 +79,8 @@ if [[ "x$HAVE_IOS" = "xyes" ]]; then
 fi
 AC_SUBST(NPFRIDA_VALAFLAGS)
 
-pkg_modules="frida-core-1.0 gee-1.0 json-glib-1.0"
-NPFRIDA_PACKAGES="--pkg frida-core-1.0 --pkg gee-1.0 --pkg json-glib-1.0"
+pkg_modules="frida-core-1.0 gee-0.8 json-glib-1.0"
+NPFRIDA_PACKAGES="--pkg frida-core-1.0 --pkg gee-0.8 --pkg json-glib-1.0"
 PKG_CHECK_MODULES(NPFRIDA, [$pkg_modules])
 AC_SUBST(NPFRIDA_CFLAGS)
 AC_SUBST(NPFRIDA_LDFLAGS)
