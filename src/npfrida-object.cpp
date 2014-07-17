@@ -57,7 +57,7 @@ struct _NPFridaClosure
 struct _NPFridaClosureInvocation
 {
   NPFridaClosure * closure;
-  GValueArray * args;
+  GArray * args;
 };
 
 static void npfrida_object_constructed (GObject * object);
@@ -777,9 +777,13 @@ npfrida_closure_marshal (GClosure * closure, GValue * return_gvalue, guint n_par
 
   invocation = g_slice_new (NPFridaClosureInvocation);
   invocation->closure = self;
-  invocation->args = g_value_array_new (n_param_values);
+  invocation->args = g_array_sized_new (FALSE, FALSE, sizeof (GValue), n_param_values);
   for (i = 0; i != n_param_values; i++)
-    g_value_array_append (invocation->args, &param_values[i]);
+  {
+    GValue val = { 0, };
+    g_value_copy (&param_values[i], &val);
+    g_array_append_val (invocation->args, val);
+  }
 
   npfrida_nsfuncs->pluginthreadasynccall (self->object->g_object->priv->npp, npfrida_closure_invoke, invocation);
 }
@@ -790,14 +794,14 @@ npfrida_closure_invoke (void * data)
   NPFridaClosureInvocation * invocation = static_cast<NPFridaClosureInvocation *> (data);
   NPFridaClosure * self = invocation->closure;
   NPVariant * args;
-  guint arg_count = invocation->args->n_values - 1;
+  guint arg_count = invocation->args->len - 1;
   gboolean success = TRUE;
   guint i;
 
   args = static_cast<NPVariant *> (g_alloca (arg_count * sizeof (NPVariant)));
-  for (i = 1; i != invocation->args->n_values; i++)
+  for (i = 1; i != invocation->args->len; i++)
   {
-    if (!npfrida_object_gvalue_to_npvariant (self->object->g_object, &invocation->args->values[i], &args[i - 1]))
+    if (!npfrida_object_gvalue_to_npvariant (self->object->g_object, &g_array_index (invocation->args, GValue, i), &args[i - 1]))
     {
       success = FALSE;
       g_debug ("failed to convert argument %u to a variant", i - 1);
@@ -816,6 +820,8 @@ npfrida_closure_invoke (void * data)
   for (i = 0; i != arg_count; i++)
     npfrida_nsfuncs->releasevariantvalue (&args[i]);
 
-  g_value_array_free (invocation->args);
+  for (i = 0; i != invocation->args->len; i++)
+    g_value_reset (&g_array_index (invocation->args, GValue, i));
+  g_array_free (invocation->args, TRUE);
   g_slice_free (NPFridaClosureInvocation, invocation);
 }

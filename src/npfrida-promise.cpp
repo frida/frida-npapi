@@ -4,6 +4,11 @@
 
 #include <string.h>
 
+#define NPFRIDA_PROMISE_LOCK() \
+    g_mutex_lock (&self->mutex)
+#define NPFRIDA_PROMISE_UNLOCK() \
+    g_mutex_unlock (&self->mutex)
+
 static void npfrida_promise_deliver (NPFridaPromise * self, NPFridaPromiseResult result, const NPVariant * args, guint arg_count);
 static void npfrida_promise_flush (void * data);
 static void npfrida_promise_flush_unlocked (NPFridaPromise * self);
@@ -19,7 +24,7 @@ npfrida_promise_allocate (NPP npp, NPClass * klass)
   promise = g_slice_new0 (NPFridaPromise);
   promise->npp = npp;
 
-  promise->mutex = g_mutex_new ();
+  g_mutex_init (&promise->mutex);
 
   promise->result = NPFRIDA_PROMISE_PENDING;
   promise->args = g_array_new (FALSE, FALSE, sizeof (NPVariant));
@@ -40,7 +45,7 @@ npfrida_promise_deallocate (NPObject * npobj)
   if (promise->destroy_user_data != NULL)
     promise->destroy_user_data (promise->user_data);
 
-  g_mutex_free (promise->mutex);
+  g_mutex_clear (&promise->mutex);
 
   for (i = 0; i != promise->args->len; i++)
     npfrida_nsfuncs->releasevariantvalue (&g_array_index (promise->args, NPVariant, i));
@@ -76,7 +81,7 @@ npfrida_promise_deliver (NPFridaPromise * self, NPFridaPromiseResult result, con
 {
   guint i;
 
-  g_mutex_lock (self->mutex);
+  NPFRIDA_PROMISE_LOCK ();
 
   g_assert (self->result == NPFRIDA_PROMISE_PENDING);
   self->result = result;
@@ -85,7 +90,7 @@ npfrida_promise_deliver (NPFridaPromise * self, NPFridaPromiseResult result, con
   for (i = 0; i != arg_count; i++)
     npfrida_init_npvariant_with_other (&g_array_index (self->args, NPVariant, i), &args[i]);
 
-  g_mutex_unlock (self->mutex);
+  NPFRIDA_PROMISE_UNLOCK ();
 
   npfrida_nsfuncs->retainobject (&self->np_object);
   npfrida_nsfuncs->pluginthreadasynccall (self->npp, npfrida_promise_flush, self);
@@ -96,9 +101,9 @@ npfrida_promise_flush (void * data)
 {
   NPFridaPromise * self = static_cast<NPFridaPromise *> (data);
 
-  g_mutex_lock (self->mutex);
+  NPFRIDA_PROMISE_LOCK ();
   npfrida_promise_flush_unlocked (self);
-  g_mutex_unlock (self->mutex);
+  NPFRIDA_PROMISE_UNLOCK ();
 
   npfrida_nsfuncs->releaseobject (&self->np_object);
 }
@@ -115,7 +120,7 @@ npfrida_promise_flush_unlocked (NPFridaPromise * self)
   on_failure = self->on_failure; self->on_failure = g_ptr_array_new_with_free_func (npfrida_npobject_release);
   on_complete = self->on_complete; self->on_complete = g_ptr_array_new_with_free_func (npfrida_npobject_release);
 
-  g_mutex_unlock (self->mutex);
+  NPFRIDA_PROMISE_UNLOCK ();
 
   if (self->result == NPFRIDA_PROMISE_SUCCESS)
     g_ptr_array_foreach (on_success, npfrida_promise_invoke_callback, self);
@@ -127,7 +132,7 @@ npfrida_promise_flush_unlocked (NPFridaPromise * self)
   g_ptr_array_unref (on_failure);
   g_ptr_array_unref (on_complete);
 
-  g_mutex_lock (self->mutex);
+  NPFRIDA_PROMISE_LOCK ();
 }
 
 static void
@@ -198,7 +203,7 @@ npfrida_promise_invoke (NPObject * npobj, NPIdentifier name, const NPVariant * a
 
     callback = npfrida_nsfuncs->retainobject (NPVARIANT_TO_OBJECT (args[0]));
 
-    g_mutex_lock (self->mutex);
+    NPFRIDA_PROMISE_LOCK ();
     if (strcmp (function_name, "done") == 0)
       callbacks = self->on_success;
     else if (strcmp (function_name, "fail") == 0)
@@ -211,7 +216,7 @@ npfrida_promise_invoke (NPObject * npobj, NPIdentifier name, const NPVariant * a
 
     g_ptr_array_add (callbacks, callback);
     npfrida_promise_flush_unlocked (self);
-    g_mutex_unlock (self->mutex);
+    NPFRIDA_PROMISE_UNLOCK ();
 
     OBJECT_TO_NPVARIANT (npfrida_nsfuncs->retainobject (npobj), *result);
   }

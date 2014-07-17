@@ -22,7 +22,7 @@ struct _NPFridaPromise
 
   /*< private */
   NPP npp;
-  GMutex * mutex;
+  GMutex mutex;
   NPFridaPromiseResult result;
   GArray * args;
   GPtrArray * on_success;
